@@ -1,29 +1,59 @@
 {
-  "name": "homebridge-panasonic-air-conditioner",
-  "version": "1.0.0",
+  "_from": "homebridge-panasonic-air-conditioner",
+  "_id": "homebridge-panasonic-air-conditioner@1.0.0",
+  "_inBundle": false,
+  "_integrity": "sha512-7b0oXKpJ3+AGk7s6gQD4kW/ER7vN2zE0THfnVSCi9u7DWEzQUhHXlIJ2f5AxqrnW4NhkIPpz7NFCe1y0lsH9Dg==",
+  "_location": "/homebridge-panasonic-air-conditioner",
+  "_phantomChildren": {},
+  "_requested": {
+    "type": "tag",
+    "registry": true,
+    "raw": "homebridge-panasonic-air-conditioner",
+    "name": "homebridge-panasonic-air-conditioner",
+    "escapedName": "homebridge-panasonic-air-conditioner",
+    "rawSpec": "",
+    "saveSpec": null,
+    "fetchSpec": "latest"
+  },
+  "_requiredBy": [
+    "#USER"
+  ],
+  "_resolved": "https://registry.npmjs.org/homebridge-panasonic-air-conditioner/-/homebridge-panasonic-air-conditioner-1.0.0.tgz",
+  "_shasum": "99a1869693f700ef23223f1f86c29ee2c94ac526",
+  "_spec": "homebridge-panasonic-air-conditioner",
+  "_where": "/home/pi",
+  "author": {
+    "name": "codyc1515"
+  },
+  "bugs": {
+    "url": "https://github.com/codyc1515/homebridge-panasonic-air-conditioner/issues"
+  },
+  "bundleDependencies": false,
+  "deprecated": false,
+  "dependencies": {
+    "request": "^2.81.0"
+  },
   "description": "HomeBridge Panasonic Air Conditioner",
-  "main": "index.js",
   "engines": {
     "homebridge": ">=0.4.0",
     "node": ">=8.6.0"
   },
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
+  "homepage": "https://github.com/codyc1515/homebridge-panasonic-air-conditioner#readme",
   "keywords": [
     "homebridge-plugin",
     "homekit",
     "panasonic",
     "air conditioner"
   ],
-  "author": "codyc1515",
   "license": "MIT",
+  "main": "index.js",
+  "name": "homebridge-panasonic-air-conditioner",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/codyc1515/homebridge-panasonic-air-conditioner.git"
   },
-  "bugs": {
-    "url": "https://github.com/codyc1515/homebridge-panasonic-air-conditioner/issues"
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "homepage": "https://github.com/codyc1515/homebridge-panasonic-air-conditioner#readme"
+  "version": "1.0.1"
 }
