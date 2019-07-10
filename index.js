@@ -1,4 +1,3 @@
-var fs = require("fs");
 var request = require("request");
 
 var Service, Characteristic;
@@ -19,6 +18,11 @@ function PanasonicAC(log, config) {
 	this.debug = config["debug"] || false;
 	this.token = null;
 	this.device = null;
+
+	this.values = [];
+	this.values.Active = null;
+	this.values.CurrentTemperature = null;
+	this.values.ThresholdTemperature = null;
 
 	// log us in
 	request.post({
@@ -53,14 +57,12 @@ function PanasonicAC(log, config) {
 				if (!err && response.statusCode == 200) {
 					var body = JSON.parse(body);
 					this.device = body['groupList'][0]['deviceIdList'][0]['deviceGuid'];
-					this.log("Logged into Panasonic account succesfully and obtained devices");
-				} else {
-					this.log("Could not find Panasonic Air Conditioner devices");
+					this.log("Logged into Panasonic account");
 				}
+				else {this.log("Could not find any Panasonic Air Conditioner devices");}
 			}.bind(this));
-		} else {
-			this.log("Could not login to Panasonic account");
 		}
+		else {this.log("Could not login to Panasonic account");}
 	}.bind(this));
 }
 
@@ -89,13 +91,14 @@ PanasonicAC.prototype = {
 			.on('get', this._getValue.bind(this, "CurrentTemperature"));
 
 		this.HeaterCooler
-			.getCharacteristic(Characteristic.TargetHeaterCoolerState)
-			.on('get', this._getValue.bind(this, "TargetHeaterCoolerState"))
-			.on('set', this._setValue.bind(this, "TargetHeaterCoolerState"));
-
-		this.HeaterCooler
-			.getCharacteristic(Characteristic.CurrentHeaterCoolerState)
-			.on('get', this._getValue.bind(this, "CurrentHeaterCoolerState"));
+			.getCharacteristic(Characteristic.TargetTemperature)
+			.setProps({
+				minValue: 16,
+				maxValue: 30,
+				minStep: 0.5
+			})
+			.on('get', this._getValue.bind(this, "ThresholdTemperature"))
+			.on('set', this._setValue.bind(this, "ThresholdTemperature"));
 
 		this.HeaterCooler
 			.getCharacteristic(Characteristic.HeatingThresholdTemperature)
@@ -104,7 +107,6 @@ PanasonicAC.prototype = {
 				maxValue: 30,
 				minStep: 0.5
 			})
-			.on('get', this._getValue.bind(this, "ThresholdTemperature"))
 			.on('set', this._setValue.bind(this, "ThresholdTemperature"));
 
 		this.HeaterCooler
@@ -114,22 +116,25 @@ PanasonicAC.prototype = {
 				maxValue: 30,
 				minStep: 0.5
 			})
-			.on('get', this._getValue.bind(this, "ThresholdTemperature"))
 			.on('set', this._setValue.bind(this, "ThresholdTemperature"));
+
+		this.HeaterCooler
+			.getCharacteristic(Characteristic.CurrentHeaterCoolerState);
+
+		this.HeaterCooler
+			.getCharacteristic(Characteristic.TargetHeaterCoolerState)
+			.on('set', this._setValue.bind(this, "TargetHeaterCoolerState"));
 
 		this.SwitchEconavi = new Service.Switch("ECONAVI", "PanasonicAC-ECONAVI");
 		this.SwitchEconavi.getCharacteristic(Characteristic.On)
-			.on('get', this._getValue.bind(this, "Econavi"))
 			.on('set', this._setValue.bind(this, "Econavi"));
 
 		this.SwitchQuiet = new Service.Switch("Quiet", "PanasonicAC-Quiet");
 		this.SwitchQuiet.getCharacteristic(Characteristic.On)
-			.on('get', this._getValue.bind(this, "Quiet"))
 			.on('set', this._setValue.bind(this, "Quiet"));
 
 		this.SwitchPowerful = new Service.Switch("Powerful", "PanasonicAC-Powerful");
 		this.SwitchPowerful.getCharacteristic(Characteristic.On)
-			.on('get', this._getValue.bind(this, "Powerful"))
 			.on('set', this._setValue.bind(this, "Powerful"));
 
 		var informationService = new Service.AccessoryInformation();
@@ -148,132 +153,82 @@ PanasonicAC.prototype = {
 			this.log("GET", CharacteristicName);
 		}
 
-		request.get({
-			url: "https://accsmart.panasonic.com/deviceStatus/now/" + this.device,
-			headers: {
-				"Accept": "application/json; charset=UTF-8",
-				"Content-Type": "application/json",
-				"X-APP-TYPE": 0,
-				"X-APP-VERSION": "1.5.0",
-				"X-User-Authorization": this.token
-			},
-			rejectUnauthorized: false
-		}, function(err, response, body) {
-			if (!err && response.statusCode == 200) {
-				var json = JSON.parse(body);
+		if(CharacteristicName == "Active") {
+			callback(null, this.values.Active);
 
-				switch (CharacteristicName) {
-					case "Active":
-						if (json['parameters']['operate'] == 1) {
-							this.HeaterCooler.getCharacteristic(Characteristic.Active).updateValue("ACTIVE");
-							callback(null, Characteristic.Active.ACTIVE);
-						} else {
-							this.HeaterCooler.getCharacteristic(Characteristic.Active).updateValue("INACTIVE");
-							callback(null, Characteristic.Active.INACTIVE);
-						}
-						break;
+			request.get({
+				url: "https://accsmart.panasonic.com/deviceStatus/now/" + this.device,
+				headers: {
+					"Accept": "application/json; charset=UTF-8",
+					"Content-Type": "application/json",
+					"X-APP-TYPE": 0,
+					"X-APP-VERSION": "1.5.0",
+					"X-User-Authorization": this.token
+				},
+				rejectUnauthorized: false
+			}, function(err, response, body) {
+				if (!err && response.statusCode == 200) {
+					var json = JSON.parse(body);
 
-					case "CurrentTemperature":
-						var currentTemperature = null;
-						if (fs.existsSync("/var/homebridge/temp.txt")) {
-							currentTemperature = fs.readFileSync("/var/homebridge/temp.txt", "utf8");
-						} else if (json['parameters']['insideTemperature'] < 100) {
-							currentTemperature = json['parameters']['insideTemperature'];
-						} else if (json['parameters']['outTemperature'] < 100) {
-							currentTemperature = json['parameters']['outTemperature'];
-						}
+					if (json['parameters']['insideTemperature'] < 100) {
+						this.values.CurrentTemperature = json['parameters']['insideTemperature'];
+						this.HeaterCooler.getCharacteristic(Characteristic.CurrentTemperature).updateValue(this.values.CurrentTemperature);
 
-						this.HeaterCooler.getCharacteristic(Characteristic.CurrentTemperature).updateValue(currentTemperature);
-						callback(null, currentTemperature);
-						break;
+						if (json['parameters']['insideTemperature'] < json['parameters']['temperatureSet']) {this.HeaterCooler.getCharacteristic(Characteristic.CurrentHeaterCoolerState).setValue(Characteristic.CurrentHeaterCoolerState.HEATING);}
+						else if (json['parameters']['insideTemperature'] > json['parameters']['temperatureSet']) {this.HeaterCooler.getCharacteristic(Characteristic.CurrentHeaterCoolerState).setValue(Characteristic.CurrentHeaterCoolerState.COOLING);}
+						else {this.HeaterCooler.getCharacteristic(Characteristic.CurrentHeaterCoolerState).setValue(Characteristic.CurrentHeaterCoolerState.IDLE);}
+					}
+					else if (json['parameters']['outTemperature'] < 100) {
+						this.values.CurrentTemperature = json['parameters']['outTemperature'];
+						this.HeaterCooler.getCharacteristic(Characteristic.CurrentTemperature).updateValue(this.values.CurrentTemperature);
 
-					case "ThresholdTemperature":
-						this.HeaterCooler.getCharacteristic(Characteristic.TargetTemperature).updateValue(json['parameters']['temperatureSet']);
-						callback(null, json['parameters']['temperatureSet']);
-						break;
+						if (json['parameters']['outTemperature'] < json['parameters']['temperatureSet']) {this.HeaterCooler.getCharacteristic(Characteristic.CurrentHeaterCoolerState).setValue(Characteristic.CurrentHeaterCoolerState.HEATING);}
+						else if (json['parameters']['outTemperature'] > json['parameters']['temperatureSet']) {this.HeaterCooler.getCharacteristic(Characteristic.CurrentHeaterCoolerState).setValue(Characteristic.CurrentHeaterCoolerState.COOLING);}
+						else {this.HeaterCooler.getCharacteristic(Characteristic.CurrentHeaterCoolerState).setValue(Characteristic.CurrentHeaterCoolerState.IDLE);}
+					}
+					else {
+						this.values.CurrentTemperature = null;
+						this.HeaterCooler.getCharacteristic(Characteristic.CurrentTemperature).updateValue(null);
+						this.HeaterCooler.getCharacteristic(Characteristic.CurrentHeaterCoolerState).setValue(Characteristic.CurrentHeaterCoolerState.IDLE);
+					}
 
-					case "TargetHeaterCoolerState":
-						switch (json['parameters']['operationMode']) {
-							case 0: // auto
-								this.HeaterCooler.getCharacteristic(Characteristic.TargetHeaterCoolerState).setValue(0);
-								callback(null, 0);
-								break;
+					this.values.ThresholdTemperature = json['parameters']['temperatureSet'];
+					this.HeaterCooler.getCharacteristic(Characteristic.TargetTemperature).updateValue(this.values.ThresholdTemperature);
+					this.HeaterCooler.getCharacteristic(Characteristic.HeatingThresholdTemperature).updateValue(this.values.ThresholdTemperature);
+					this.HeaterCooler.getCharacteristic(Characteristic.CoolingThresholdTemperature).updateValue(this.values.ThresholdTemperature);
 
-							case 3: // heat
-								this.HeaterCooler.getCharacteristic(Characteristic.TargetHeaterCoolerState).setValue(1);
-								callback(null, 1);
-								break;
+					switch (json['parameters']['operationMode']) {
+						case 0: // auto
+							this.HeaterCooler.getCharacteristic(Characteristic.TargetHeaterCoolerState).setValue(0);
+							break;
 
-							case 2: // cool
-								this.HeaterCooler.getCharacteristic(Characteristic.TargetHeaterCoolerState).setValue(2);
-								callback(null, 2);
-								break;
-						}
-						break;
+						case 3: // heat
+							this.HeaterCooler.getCharacteristic(Characteristic.TargetHeaterCoolerState).setValue(1);
+							break;
 
-					case "CurrentHeaterCoolerState":
-						if (json['parameters']['insideTemperature'] < 100) {
-							if (json['parameters']['insideTemperature'] < json['parameters']['temperatureSet']) {
-								callback(null, Characteristic.CurrentHeaterCoolerState.HEATING);
-							} else if (json['parameters']['insideTemperature'] > json['parameters']['temperatureSet']) {
-								callback(null, Characteristic.CurrentHeaterCoolerState.COOLING);
-							} else {
-								callback(null, Characteristic.CurrentHeaterCoolerState.IDLE);
-							}
-						} else if (json['parameters']['outTemperature'] < 100) {
-							if (json['parameters']['outTemperature'] < json['parameters']['temperatureSet']) {
-								callback(null, Characteristic.CurrentHeaterCoolerState.HEATING);
-							} else if (json['parameters']['outTemperature'] > json['parameters']['temperatureSet']) {
-								callback(null, Characteristic.CurrentHeaterCoolerState.COOLING);
-							} else {
-								callback(null, Characteristic.CurrentHeaterCoolerState.IDLE);
-							}
-						} else {
-							callback(null, Characteristic.CurrentHeaterCoolerState.IDLE);
-						}
-						break;
+						case 2: // cool
+							this.HeaterCooler.getCharacteristic(Characteristic.TargetHeaterCoolerState).setValue(2);
+							break;
+					}
 
-					case "Econavi":
-						if (json['parameters']['ecoNavi'] == 2) {
-							this.SwitchQuiet.getCharacteristic(Characteristic.Active).updateValue("INACTIVE");
-							this.SwitchPowerful.getCharacteristic(Characteristic.Active).updateValue("INACTIVE");
-							this.SwitchEconavi.getCharacteristic(Characteristic.Active).updateValue("ACTIVE");
-							callback(null, Characteristic.Active.ACTIVE);
-						} else {
-							this.SwitchEconavi.getCharacteristic(Characteristic.Active).updateValue("INACTIVE");
-							callback(null, Characteristic.Active.INACTIVE);
-						}
-						break;
+					if (json['parameters']['ecoNavi'] == 2) {this.SwitchEconavi.getCharacteristic(Characteristic.Active).updateValue(1);}
+					else {this.SwitchEconavi.getCharacteristic(Characteristic.Active).updateValue(0);}
 
-					case "Quiet":
-						if (json['parameters']['ecoMode'] == 2) {
-							this.SwitchQuiet.getCharacteristic(Characteristic.Active).updateValue("ACTIVE");
-							this.SwitchPowerful.getCharacteristic(Characteristic.Active).updateValue("INACTIVE");
-							this.SwitchEconavi.getCharacteristic(Characteristic.Active).updateValue("INACTIVE");
-							callback(null, Characteristic.Active.ACTIVE);
-						} else {
-							this.SwitchQuiet.getCharacteristic(Characteristic.Active).updateValue("INACTIVE");
-							callback(null, Characteristic.Active.INACTIVE);
-						}
-						break;
+					if (json['parameters']['ecoMode'] == 2) {this.SwitchQuiet.getCharacteristic(Characteristic.Active).updateValue(1);}
+					else {this.SwitchQuiet.getCharacteristic(Characteristic.Active).updateValue(0);}
 
-					case "Powerful":
-						if (json['parameters']['ecoMode'] == 1) {
-							this.SwitchQuiet.getCharacteristic(Characteristic.Active).updateValue("INACTIVE");
-							this.SwitchPowerful.getCharacteristic(Characteristic.Active).updateValue("ACTIVE");
-							this.SwitchEconavi.getCharacteristic(Characteristic.Active).updateValue("INACTIVE");
-							callback(null, Characteristic.Active.ACTIVE);
-						} else {
-							this.SwitchPowerful.getCharacteristic(Characteristic.Active).updateValue("INACTIVE");
-							callback(null, Characteristic.Active.INACTIVE);
-						}
-						break;
+					if (json['parameters']['ecoMode'] == 1) {this.SwitchPowerful.getCharacteristic(Characteristic.Active).updateValue(1);}
+					else {this.SwitchPowerful.getCharacteristic(Characteristic.Active).updateValue(0);}
+
+					if (json['parameters']['operate'] == 1) {this.HeaterCooler.getCharacteristic(Characteristic.Active).updateValue(1);}
+					else {this.HeaterCooler.getCharacteristic(Characteristic.Active).updateValue(0);}
 				}
-			} else {
-				this.log("Could not send GET command");
-				callback();
-			}
-		}.bind(this));
+				else {this.log("Could not send GET command");}
+			}.bind(this));
+		}
+		else if(CharacteristicName == "CurrentTemperature") {callback(null, this.values.CurrentTemperature);}
+		else if(CharacteristicName == "ThresholdTemperature") {callback(null, this.values.ThresholdTemperature);}
+		else {callback(null);}
 	},
 
 	_setValue: function(CharacteristicName, value, callback) {
@@ -380,16 +335,11 @@ PanasonicAC.prototype = {
 			rejectUnauthorized: false
 		}, function(err, response, body) {
 			if (!err && response.statusCode == 200) {
-				if (body.result == 0) {
-					callback();
-				} else {
-					this.log("Could not send SET command");
-					callback();
-				}
-			} else {
-				this.log("Could not send SET command");
 				callback();
+
+				if (body.result !== 0) {this.log("Could not send SET command");}
 			}
+			else {this.log("Could not send SET command");}
 		}.bind(this));
 	}
 
