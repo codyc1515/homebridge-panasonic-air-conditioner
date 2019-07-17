@@ -31,7 +31,7 @@ function PanasonicAC(log, config) {
 			"Accept": "application/json; charset=UTF-8",
 			"Content-Type": "application/json",
 			"X-APP-TYPE": 0,
-			"X-APP-VERSION": "1.5.0"
+			"X-APP-VERSION": "1.5.1"
 		},
 		json: {
 			"loginId": config["email"],
@@ -48,7 +48,7 @@ function PanasonicAC(log, config) {
 					"Accept": "application/json; charset=UTF-8",
 					"Content-Type": "application/json",
 					"X-APP-TYPE": 0,
-					"X-APP-VERSION": "1.5.0",
+					"X-APP-VERSION": "1.5.1",
 					"X-User-Authorization": this.token
 				},
 				json: "",
@@ -142,7 +142,7 @@ PanasonicAC.prototype = {
 			.setCharacteristic(Characteristic.Name, this.name)
 			.setCharacteristic(Characteristic.Manufacturer, "Panasonic")
 			.setCharacteristic(Characteristic.Model, "CZ-TACG1")
-			.setCharacteristic(Characteristic.FirmwareRevision, "1.5.0")
+			.setCharacteristic(Characteristic.FirmwareRevision, "1.5.1")
 			.setCharacteristic(Characteristic.SerialNumber, this.device);
 
 		return [informationService, this.HeaterCooler, this.SwitchEconavi, this.SwitchQuiet, this.SwitchPowerful];
@@ -162,7 +162,7 @@ PanasonicAC.prototype = {
 					"Accept": "application/json; charset=UTF-8",
 					"Content-Type": "application/json",
 					"X-APP-TYPE": 0,
-					"X-APP-VERSION": "1.5.0",
+					"X-APP-VERSION": "1.5.1",
 					"X-User-Authorization": this.token
 				},
 				rejectUnauthorized: false
@@ -325,7 +325,7 @@ PanasonicAC.prototype = {
 				"Accept": "application/json; charset=UTF-8",
 				"Content-Type": "application/json",
 				"X-APP-TYPE": 0,
-				"X-APP-VERSION": "1.5.0",
+				"X-APP-VERSION": "1.5.1",
 				"X-User-Authorization": this.token
 			},
 			json: {
