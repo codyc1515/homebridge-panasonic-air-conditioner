@@ -21,7 +21,7 @@ function PanasonicAC(log, config) {
 	this.version = "1.5.1";
 
 	this.values = [];
-	this.values.Active = null;
+	this.values.Active = Characteristic.Active.INACTIVE;
 	this.values.CurrentTemperature = null;
 	this.values.ThresholdTemperature = null;
 
@@ -206,29 +206,35 @@ PanasonicAC.prototype = {
 
 					switch (json['parameters']['operationMode']) {
 						case 0: // auto
-							this.HeaterCooler.getCharacteristic(Characteristic.TargetHeaterCoolerState).setValue(0);
+							this.HeaterCooler.getCharacteristic(Characteristic.TargetHeaterCoolerState).setValue(Characteristic.TargetHeaterCoolerState.AUTO);
 							break;
 
 						case 3: // heat
-							this.HeaterCooler.getCharacteristic(Characteristic.TargetHeaterCoolerState).setValue(1);
+							this.HeaterCooler.getCharacteristic(Characteristic.TargetHeaterCoolerState).setValue(Characteristic.TargetHeaterCoolerState.HEAT);
 							break;
 
 						case 2: // cool
-							this.HeaterCooler.getCharacteristic(Characteristic.TargetHeaterCoolerState).setValue(2);
+							this.HeaterCooler.getCharacteristic(Characteristic.TargetHeaterCoolerState).setValue(Characteristic.TargetHeaterCoolerState.COOL);
 							break;
 					}
 
-					if (json['parameters']['ecoNavi'] == 2) {this.SwitchEconavi.getCharacteristic(Characteristic.Active).updateValue(1);}
-					else {this.SwitchEconavi.getCharacteristic(Characteristic.Active).updateValue(0);}
+					if (json['parameters']['ecoNavi'] == 2) {this.SwitchEconavi.getCharacteristic(Characteristic.Active).updateValue(Characteristic.Active.ACTIVE);}
+					else {this.SwitchEconavi.getCharacteristic(Characteristic.Active).updateValue(Characteristic.Active.INACTIVE);}
 
-					if (json['parameters']['ecoMode'] == 2) {this.SwitchQuiet.getCharacteristic(Characteristic.Active).updateValue(1);}
-					else {this.SwitchQuiet.getCharacteristic(Characteristic.Active).updateValue(0);}
+					if (json['parameters']['ecoMode'] == 2) {this.SwitchQuiet.getCharacteristic(Characteristic.Active).updateValue(Characteristic.Active.ACTIVE);}
+					else {this.SwitchQuiet.getCharacteristic(Characteristic.Active).updateValue(Characteristic.Active.INACTIVE);}
 
-					if (json['parameters']['ecoMode'] == 1) {this.SwitchPowerful.getCharacteristic(Characteristic.Active).updateValue(1);}
-					else {this.SwitchPowerful.getCharacteristic(Characteristic.Active).updateValue(0);}
+					if (json['parameters']['ecoMode'] == 1) {this.SwitchPowerful.getCharacteristic(Characteristic.Active).updateValue(Characteristic.Active.ACTIVE);}
+					else {this.SwitchPowerful.getCharacteristic(Characteristic.Active).updateValue(Characteristic.Active.INACTIVE);}
 
-					if (json['parameters']['operate'] == 1) {this.HeaterCooler.getCharacteristic(Characteristic.Active).updateValue(1);}
-					else {this.HeaterCooler.getCharacteristic(Characteristic.Active).updateValue(0);}
+					if (json['parameters']['operate'] == 1) {
+						this.values.Active = Characteristic.Active.ACTIVE;
+						this.HeaterCooler.getCharacteristic(Characteristic.Active).updateValue(Characteristic.Active.ACTIVE);
+					}
+					else {
+						this.values.Active = Characteristic.Active.INACTIVE;
+						this.HeaterCooler.getCharacteristic(Characteristic.Active).updateValue(Characteristic.Active.INACTIVE);
+					}
 
 					this.HeaterCooler.getCharacteristic(Characteristic.StatusFault).updateValue(Characteristic.StatusFault.NO_FAULT);
 				}
