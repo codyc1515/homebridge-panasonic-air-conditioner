@@ -67,7 +67,9 @@ function PanasonicAC(log, config) {
 			}.bind(this));
 		}
 		else {
-			this.log("Could not login to Panasonic account | Error # " + body['code'] + ": " + body['message']);
+			try {this.log("Could not login to Panasonic account | Error # " + body['code'] + ": " + body['message']);}
+			catch(err) {this.log("Could not login to Panasonic account | Unknown error. Did the API version change?", err);}
+
 			this.HeaterCooler.getCharacteristic(Characteristic.StatusFault).updateValue(Characteristic.StatusFault.GENERAL_FAULT);
 		}
 	}.bind(this));
