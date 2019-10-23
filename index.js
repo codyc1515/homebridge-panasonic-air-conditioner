@@ -241,7 +241,9 @@ PanasonicAC.prototype = {
 					this.HeaterCooler.getCharacteristic(Characteristic.StatusFault).updateValue(Characteristic.StatusFault.NO_FAULT);
 				}
 				else {
-					this.log("Could not send GET command | Error # " + body['code'] + ": " + body['message']);
+					try {this.log("Could not send GET command | Error # " + body['code'] + ": " + body['message']);}
+					catch(err) {this.log("Could not send GET command | Unknown error. Did the API version change?", err);}
+
 					this.HeaterCooler.getCharacteristic(Characteristic.StatusFault).updateValue(Characteristic.StatusFault.GENERAL_FAULT);
 				}
 			}.bind(this));
