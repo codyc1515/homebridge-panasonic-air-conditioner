@@ -19,18 +19,6 @@ Panasonic Air Conditioner that has a CZ-TACG1 adapter installed
 
 3. Share your login to another user setup specifically for HomeBridge
 
-### Change your HomeBridge config file
-Add the below to the ```accesories``` section of your HomeBridge ```config.json``` file and input your *Comfort Cloud* login details in the email & password fields:
-
-```
-{
-  "accessory": "PanasonicAirConditioner",
-  "name": "Panasonic Heat Pump",
-  "email": "your@email.com",
-  "password": "yourSECUREpassword"
-}
-```
-
 ### Legal
 * Licensed under [MIT](LICENSE)
 * This is not an official plug-in and is not affiliated with Panasonic in any way
