@@ -1,8 +1,8 @@
 {
   "_from": "homebridge-panasonic-air-conditioner@latest",
-  "_id": "homebridge-panasonic-air-conditioner@1.2.0",
+  "_id": "homebridge-panasonic-air-conditioner@1.1.2",
   "_inBundle": false,
-  "_integrity": "sha512-O6/Vp5ZOS94i8rH99EXESaU/ssnp0wjM0gnGpyry2+j92YYIWz6kAipcrnnaWUK7RUKLXRsVsCESz9JZ2rRXoQ==",
+  "_integrity": "sha512-GkJiMeKsGXi4lgQD6Hj2l0dDdx3RIZO1FmqrH5DSYimZO2XVW2EU/JY+BqwVAfc8qwGx6xRTZ+luNpWSIEDnbQ==",
   "_location": "/homebridge-panasonic-air-conditioner",
   "_phantomChildren": {},
   "_requested": {
@@ -18,8 +18,8 @@
   "_requiredBy": [
     "#USER"
   ],
-  "_resolved": "https://registry.npmjs.org/homebridge-panasonic-air-conditioner/-/homebridge-panasonic-air-conditioner-1.2.0.tgz",
-  "_shasum": "9b683afaa5e1849a5149f18a6da3d45c5cc3f758",
+  "_resolved": "https://registry.npmjs.org/homebridge-panasonic-air-conditioner/-/homebridge-panasonic-air-conditioner-1.1.2.tgz",
+  "_shasum": "372fc3c97e83f9b6053869f30c7c9cd8ecf741fa",
   "_spec": "homebridge-panasonic-air-conditioner@latest",
   "_where": "/usr/lib",
   "author": {
