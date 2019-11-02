@@ -39,7 +39,7 @@ function PanasonicAC(log, config) {
 			"language": "0",
 			"password": config["password"]
 		},
-		timeout: 2000
+		rejectUnauthorized: false
 	}, function(err, response, body) {
 		if (!err && response.statusCode == 200) {
 			this.token = body['uToken'];
@@ -53,7 +53,7 @@ function PanasonicAC(log, config) {
 					"X-User-Authorization": this.token
 				},
 				json: "",
-				timeout: 2000
+				rejectUnauthorized: false
 			}, function(err, response, body) {
 				if (!err && response.statusCode == 200) {
 					var body = JSON.parse(body);
@@ -174,7 +174,7 @@ PanasonicAC.prototype = {
 					"X-APP-VERSION": this.version,
 					"X-User-Authorization": this.token
 				},
-				timeout: 2000
+				rejectUnauthorized: false
 			}, function(err, response, body) {
 				if (!err && response.statusCode == 200) {
 					var json = JSON.parse(body);
@@ -354,7 +354,7 @@ PanasonicAC.prototype = {
 				"deviceGuid": this.device,
 				"parameters": parameters
 			},
-			timeout: 2000
+			rejectUnauthorized: false
 		}, function(err, response, body) {
 			if (!err && response.statusCode == 200) {
 				callback();
