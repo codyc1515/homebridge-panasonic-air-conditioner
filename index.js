@@ -183,22 +183,22 @@ PanasonicAC.prototype = {
 						this.values.CurrentTemperature = json['parameters']['insideTemperature'];
 						this.HeaterCooler.getCharacteristic(Characteristic.CurrentTemperature).updateValue(this.values.CurrentTemperature);
 
-						if (json['parameters']['insideTemperature'] < json['parameters']['temperatureSet']) {this.HeaterCooler.getCharacteristic(Characteristic.CurrentHeaterCoolerState).setValue(Characteristic.CurrentHeaterCoolerState.HEATING);}
-						else if (json['parameters']['insideTemperature'] > json['parameters']['temperatureSet']) {this.HeaterCooler.getCharacteristic(Characteristic.CurrentHeaterCoolerState).setValue(Characteristic.CurrentHeaterCoolerState.COOLING);}
-						else {this.HeaterCooler.getCharacteristic(Characteristic.CurrentHeaterCoolerState).setValue(Characteristic.CurrentHeaterCoolerState.IDLE);}
+						if (json['parameters']['insideTemperature'] < json['parameters']['temperatureSet']) {this.HeaterCooler.getCharacteristic(Characteristic.CurrentHeaterCoolerState).updateValue(Characteristic.CurrentHeaterCoolerState.HEATING);}
+						else if (json['parameters']['insideTemperature'] > json['parameters']['temperatureSet']) {this.HeaterCooler.getCharacteristic(Characteristic.CurrentHeaterCoolerState).updateValue(Characteristic.CurrentHeaterCoolerState.COOLING);}
+						else {this.HeaterCooler.getCharacteristic(Characteristic.CurrentHeaterCoolerState).updateValue(Characteristic.CurrentHeaterCoolerState.IDLE);}
 					}
 					else if (json['parameters']['outTemperature'] < 100) {
 						this.values.CurrentTemperature = json['parameters']['outTemperature'];
 						this.HeaterCooler.getCharacteristic(Characteristic.CurrentTemperature).updateValue(this.values.CurrentTemperature);
 
-						if (json['parameters']['outTemperature'] < json['parameters']['temperatureSet']) {this.HeaterCooler.getCharacteristic(Characteristic.CurrentHeaterCoolerState).setValue(Characteristic.CurrentHeaterCoolerState.HEATING);}
-						else if (json['parameters']['outTemperature'] > json['parameters']['temperatureSet']) {this.HeaterCooler.getCharacteristic(Characteristic.CurrentHeaterCoolerState).setValue(Characteristic.CurrentHeaterCoolerState.COOLING);}
-						else {this.HeaterCooler.getCharacteristic(Characteristic.CurrentHeaterCoolerState).setValue(Characteristic.CurrentHeaterCoolerState.IDLE);}
+						if (json['parameters']['outTemperature'] < json['parameters']['temperatureSet']) {this.HeaterCooler.getCharacteristic(Characteristic.CurrentHeaterCoolerState).updateValue(Characteristic.CurrentHeaterCoolerState.HEATING);}
+						else if (json['parameters']['outTemperature'] > json['parameters']['temperatureSet']) {this.HeaterCooler.getCharacteristic(Characteristic.CurrentHeaterCoolerState).updateValue(Characteristic.CurrentHeaterCoolerState.COOLING);}
+						else {this.HeaterCooler.getCharacteristic(Characteristic.CurrentHeaterCoolerState).updateValue(Characteristic.CurrentHeaterCoolerState.IDLE);}
 					}
 					else {
 						this.values.CurrentTemperature = null;
 						this.HeaterCooler.getCharacteristic(Characteristic.CurrentTemperature).updateValue(null);
-						this.HeaterCooler.getCharacteristic(Characteristic.CurrentHeaterCoolerState).setValue(Characteristic.CurrentHeaterCoolerState.IDLE);
+						this.HeaterCooler.getCharacteristic(Characteristic.CurrentHeaterCoolerState).updateValue(Characteristic.CurrentHeaterCoolerState.IDLE);
 					}
 
 					this.values.ThresholdTemperature = json['parameters']['temperatureSet'];
@@ -208,15 +208,15 @@ PanasonicAC.prototype = {
 
 					switch (json['parameters']['operationMode']) {
 						case 0: // auto
-							this.HeaterCooler.getCharacteristic(Characteristic.TargetHeaterCoolerState).setValue(Characteristic.TargetHeaterCoolerState.AUTO);
+							this.HeaterCooler.getCharacteristic(Characteristic.TargetHeaterCoolerState).updateValue(Characteristic.TargetHeaterCoolerState.AUTO);
 							break;
 
 						case 3: // heat
-							this.HeaterCooler.getCharacteristic(Characteristic.TargetHeaterCoolerState).setValue(Characteristic.TargetHeaterCoolerState.HEAT);
+							this.HeaterCooler.getCharacteristic(Characteristic.TargetHeaterCoolerState).updateValue(Characteristic.TargetHeaterCoolerState.HEAT);
 							break;
 
 						case 2: // cool
-							this.HeaterCooler.getCharacteristic(Characteristic.TargetHeaterCoolerState).setValue(Characteristic.TargetHeaterCoolerState.COOL);
+							this.HeaterCooler.getCharacteristic(Characteristic.TargetHeaterCoolerState).updateValue(Characteristic.TargetHeaterCoolerState.COOL);
 							break;
 					}
 
@@ -279,21 +279,21 @@ PanasonicAC.prototype = {
 						parameters = {
 							"operationMode": 2
 						};
-						this.HeaterCooler.getCharacteristic(Characteristic.CurrentHeaterCoolerState).setValue(3);
+						this.HeaterCooler.getCharacteristic(Characteristic.CurrentHeaterCoolerState).updateValue(3);
 						break;
 
 					case Characteristic.TargetHeaterCoolerState.HEAT:
 						parameters = {
 							"operationMode": 3
 						};
-						this.HeaterCooler.getCharacteristic(Characteristic.CurrentHeaterCoolerState).setValue(2);
+						this.HeaterCooler.getCharacteristic(Characteristic.CurrentHeaterCoolerState).updateValue(2);
 						break;
 
 					case Characteristic.TargetHeaterCoolerState.AUTO:
 						parameters = {
 							"operationMode": 0
 						};
-						this.HeaterCooler.getCharacteristic(Characteristic.CurrentHeaterCoolerState).setValue(0);
+						this.HeaterCooler.getCharacteristic(Characteristic.CurrentHeaterCoolerState).updateValue(0);
 						break;
 				}
 				break;
