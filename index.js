@@ -28,53 +28,10 @@ function PanasonicAC(log, config) {
 	this.values.RotationSpeed = 0;
 
 	// Log us in
-	request.post({
-		url: "https://accsmart.panasonic.com/auth/login/",
-		headers: {
-			"Accept": "application/json; charset=UTF-8",
-			"Content-Type": "application/json",
-			"X-APP-TYPE": 0,
-			"X-APP-VERSION": this.version
-		},
-		json: {
-			"loginId": config["email"],
-			"language": "0",
-			"password": config["password"]
-		},
-		rejectUnauthorized: false
-	}, function(err, response, body) {
-		if (!err && response.statusCode == 200) {
-			this.token = body['uToken'];
-			request.get({
-				url: "https://accsmart.panasonic.com/device/group/",
-				headers: {
-					"Accept": "application/json; charset=UTF-8",
-					"Content-Type": "application/json",
-					"X-APP-TYPE": 0,
-					"X-APP-VERSION": this.version,
-					"X-User-Authorization": this.token
-				},
-				json: "",
-				rejectUnauthorized: false
-			}, function(err, response, body) {
-				if (!err && response.statusCode == 200) {
-					var body = JSON.parse(body);
-					this.device = body['groupList'][0]['deviceIdList'][0]['deviceGuid'];
-					this.log("Logged into Panasonic account");
-				}
-				else {
-					this.log("Could not find any Panasonic Air Conditioner devices | Error # " + body['code'] + ": " + body['message']);
-					this.hcService.getCharacteristic(Characteristic.StatusFault).updateValue(Characteristic.StatusFault.GENERAL_FAULT);
-				}
-			}.bind(this));
-		}
-		else {
-			try {this.log("Could not login to Panasonic account | Error # " + body['code'] + ": " + body['message']);}
-			catch(err) {this.log("Could not login to Panasonic account | Unknown error. Did the API version change?", err);}
+	this._login();
 
-			this.hcService.getCharacteristic(Characteristic.StatusFault).updateValue(Characteristic.StatusFault.GENERAL_FAULT);
-		}
-	}.bind(this));
+	// Refresh the login token every 3 hours
+	setInterval(function() {this._login();}, 10800000);
 }
 
 PanasonicAC.prototype = {
@@ -82,6 +39,62 @@ PanasonicAC.prototype = {
 	identify: function(callback) {
 		this.log("identify");
 		callback();
+	},
+
+	_login: function() {
+		// Log us in
+		request.post({
+			url: "https://accsmart.panasonic.com/auth/login/",
+			headers: {
+				"Accept": "application/json; charset=UTF-8",
+				"Content-Type": "application/json",
+				"X-APP-TYPE": 0,
+				"X-APP-VERSION": this.version
+			},
+			json: {
+				"loginId": this.email,
+				"language": "0",
+				"password": this.password
+			},
+			rejectUnauthorized: false
+		}, function(err, response, body) {
+			if (!err && response.statusCode == 200) {
+				this.token = body['uToken'];
+				request.get({
+					url: "https://accsmart.panasonic.com/device/group/",
+					headers: {
+						"Accept": "application/json; charset=UTF-8",
+						"Content-Type": "application/json",
+						"X-APP-TYPE": 0,
+						"X-APP-VERSION": this.version,
+						"X-User-Authorization": this.token
+					},
+					json: "",
+					rejectUnauthorized: false
+				}, function(err, response, body) {
+					if (!err && response.statusCode == 200) {
+						var body = JSON.parse(body);
+						this.device = body['groupList'][0]['deviceIdList'][0]['deviceGuid'];
+
+						this.log("Logged into Panasonic account");
+						return true;
+					}
+					else {
+						this.log("Could not find any Panasonic Air Conditioner devices | Error # " + body['code'] + ": " + body['message']);
+
+						this.hcService.getCharacteristic(Characteristic.StatusFault).updateValue(Characteristic.StatusFault.GENERAL_FAULT);
+						return false;
+					}
+				}.bind(this));
+			}
+			else {
+				try {this.log("Could not login to Panasonic account | Error # " + body['code'] + ": " + body['message']);}
+				catch(err) {this.log("Could not login to Panasonic account | Unknown error. Did the API version change?", err);}
+
+				this.hcService.getCharacteristic(Characteristic.StatusFault).updateValue(Characteristic.StatusFault.GENERAL_FAULT);
+				return false;
+			}
+		}.bind(this));
 	},
 
 	getServices: function() {
@@ -214,7 +227,7 @@ PanasonicAC.prototype = {
 					}
 					else {
 						// Not sending a callback if the command fails means the acceossry will "Not respond" which more accurately reflects the user experience
-						try {this.log("Could not send GET command | Error # " + body['code'] + ": " + body['message']);}
+						try {this.log("Could not send GET command | HTTP response", response.statusCode, "| Error #", body['code'], ":", body['message']);}
 						catch(err) {this.log("Could not send GET command | Unknown error. Did the API version change?", err);}
 
 						this.hcService.getCharacteristic(Characteristic.StatusFault).updateValue(Characteristic.StatusFault.GENERAL_FAULT);
@@ -286,7 +299,7 @@ PanasonicAC.prototype = {
 					}
 					else {
 						// Not sending a callback if the command fails means the acceossry will "Not respond" which more accurately reflects the user experience
-						try {this.log("Could not send GET command | Error # " + body['code'] + ": " + body['message']);}
+						try {this.log("Could not send GET command | HTTP response", response.statusCode, "| Error #", body['code'], ":", body['message']);}
 						catch(err) {this.log("Could not send GET command | Unknown error. Did the API version change?", err);}
 
 						this.hcService.getCharacteristic(Characteristic.StatusFault).updateValue(Characteristic.StatusFault.GENERAL_FAULT);
@@ -408,7 +421,9 @@ PanasonicAC.prototype = {
 				else {this.hcService.getCharacteristic(Characteristic.StatusFault).updateValue(Characteristic.StatusFault.NO_FAULT);}
 			}
 			else {
-				this.log("Could not send SET command | Error # " + body['code'] + ": " + body['message']);
+				try {this.log("Could not send SET command | HTTP response", response.statusCode, "| Error #", body['code'], ":", body['message']);}
+				catch(err) {this.log("Could not send GET command | Unknown error. Did the API version change?", err);}
+
 				this.hcService.getCharacteristic(Characteristic.StatusFault).updateValue(Characteristic.StatusFault.GENERAL_FAULT);
 			}
 		}.bind(this));
