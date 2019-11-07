@@ -64,7 +64,7 @@ function PanasonicAC(log, config) {
 				}
 				else {
 					this.log("Could not find any Panasonic Air Conditioner devices | Error # " + body['code'] + ": " + body['message']);
-					this.HeaterCooler.getCharacteristic(Characteristic.StatusFault).updateValue(Characteristic.StatusFault.GENERAL_FAULT);
+					this.hcService.getCharacteristic(Characteristic.StatusFault).updateValue(Characteristic.StatusFault.GENERAL_FAULT);
 				}
 			}.bind(this));
 		}
@@ -72,7 +72,7 @@ function PanasonicAC(log, config) {
 			try {this.log("Could not login to Panasonic account | Error # " + body['code'] + ": " + body['message']);}
 			catch(err) {this.log("Could not login to Panasonic account | Unknown error. Did the API version change?", err);}
 
-			this.HeaterCooler.getCharacteristic(Characteristic.StatusFault).updateValue(Characteristic.StatusFault.GENERAL_FAULT);
+			this.hcService.getCharacteristic(Characteristic.StatusFault).updateValue(Characteristic.StatusFault.GENERAL_FAULT);
 		}
 	}.bind(this));
 }
@@ -85,14 +85,14 @@ PanasonicAC.prototype = {
 	},
 
 	getServices: function() {
-		this.HeaterCooler = new Service.HeaterCooler(this.name);
+		this.hcService = new Service.HeaterCooler(this.name);
 
-		this.HeaterCooler
+		this.hcService
 			.getCharacteristic(Characteristic.Active)
 			.on('get', this._getValue.bind(this, "Active"))
 			.on('set', this._setValue.bind(this, "Active"));
 
-		this.HeaterCooler
+		this.hcService
 			.getCharacteristic(Characteristic.CurrentTemperature)
 			.setProps({
 				minValue: 0,
@@ -101,7 +101,7 @@ PanasonicAC.prototype = {
 			})
 			.on('get', this._getValue.bind(this, "CurrentTemperature"));
 
-		this.HeaterCooler
+		this.hcService
 			.getCharacteristic(Characteristic.TargetTemperature)
 			.setProps({
 				minValue: 16,
@@ -111,7 +111,7 @@ PanasonicAC.prototype = {
 			.on('get', this._getValue.bind(this, "ThresholdTemperature"))
 			.on('set', this._setValue.bind(this, "ThresholdTemperature"));
 
-		this.HeaterCooler
+		this.hcService
 			.getCharacteristic(Characteristic.HeatingThresholdTemperature)
 			.setProps({
 				minValue: 16,
@@ -120,7 +120,7 @@ PanasonicAC.prototype = {
 			})
 			.on('set', this._setValue.bind(this, "ThresholdTemperature"));
 
-		this.HeaterCooler
+		this.hcService
 			.getCharacteristic(Characteristic.CoolingThresholdTemperature)
 			.setProps({
 				minValue: 16,
@@ -129,11 +129,11 @@ PanasonicAC.prototype = {
 			})
 			.on('set', this._setValue.bind(this, "ThresholdTemperature"));
 
-		this.HeaterCooler
+		this.hcService
 			.getCharacteristic(Characteristic.TargetHeaterCoolerState)
 			.on('set', this._setValue.bind(this, "TargetHeaterCoolerState"));
 
-		this.HeaterCooler
+		this.hcService
 			.getCharacteristic(Characteristic.RotationSpeed)
 
 			// RotationSpeed = 6 (the max in HomeKit) is converted to 0 for Auto mode
@@ -144,7 +144,7 @@ PanasonicAC.prototype = {
 			})
 			.on('set', this._setValue.bind(this, "RotationSpeed"));
 
-		this.HeaterCooler
+		this.hcService
 			.getCharacteristic(Characteristic.SwingMode)
 			.on('set', this._setValue.bind(this, "SwingMode"));
 
@@ -158,7 +158,7 @@ PanasonicAC.prototype = {
 
 		return [
 			this.informationService,
-			this.HeaterCooler
+			this.hcService
 		];
 	},
 
@@ -185,7 +185,7 @@ PanasonicAC.prototype = {
 						// RotationSpeed = 6 (the max in HomeKit) is converted to 0 for Auto mode
 						if(json['parameters']['fanSpeed'] == 0) {json['parameters']['fanSpeed'] = 6;}
 						this.values.RotationSpeed = json['parameters']['fanSpeed'];
-						this.HeaterCooler.getCharacteristic(Characteristic.RotationSpeed).updateValue(this.values.RotationSpeed);
+						this.hcService.getCharacteristic(Characteristic.RotationSpeed).updateValue(this.values.RotationSpeed);
 
 						// Set the Swing Mode
 						switch (json['parameters']['fanAutoMode']) {
@@ -193,21 +193,21 @@ PanasonicAC.prototype = {
 							case 0: this.values.SwingMode = 1; break;
 							case 1: this.values.SwingMode = 0; break;
 						}
-						this.HeaterCooler.getCharacteristic(Characteristic.SwingMode).updateValue(this.values.SwingMode);
+						this.hcService.getCharacteristic(Characteristic.SwingMode).updateValue(this.values.SwingMode);
 
 						// Set the Active state
 						if (json['parameters']['operate'] == 1) {
 							this.values.Active = Characteristic.Active.ACTIVE;
-							this.HeaterCooler.getCharacteristic(Characteristic.Active).updateValue(Characteristic.Active.ACTIVE);
+							this.hcService.getCharacteristic(Characteristic.Active).updateValue(Characteristic.Active.ACTIVE);
 						}
 						else {
 							this.values.Active = Characteristic.Active.INACTIVE;
-							this.HeaterCooler.getCharacteristic(Characteristic.Active).updateValue(Characteristic.Active.INACTIVE);
+							this.hcService.getCharacteristic(Characteristic.Active).updateValue(Characteristic.Active.INACTIVE);
 						}
 
 						// Set Status Fault
-						if(!json['parameters']['online'] || json['parameters']['errorStatusFlg']) {this.HeaterCooler.getCharacteristic(Characteristic.StatusFault).updateValue(Characteristic.StatusFault.GENERAL_FAULT);}
-						else {this.HeaterCooler.getCharacteristic(Characteristic.StatusFault).updateValue(Characteristic.StatusFault.NO_FAULT);}
+						if(!json['parameters']['online'] || json['parameters']['errorStatusFlg']) {this.hcService.getCharacteristic(Characteristic.StatusFault).updateValue(Characteristic.StatusFault.GENERAL_FAULT);}
+						else {this.hcService.getCharacteristic(Characteristic.StatusFault).updateValue(Characteristic.StatusFault.NO_FAULT);}
 
 						// Callback successfully with the Active state
 						callback(null, this.values.Active);
@@ -217,7 +217,7 @@ PanasonicAC.prototype = {
 						try {this.log("Could not send GET command | Error # " + body['code'] + ": " + body['message']);}
 						catch(err) {this.log("Could not send GET command | Unknown error. Did the API version change?", err);}
 
-						this.HeaterCooler.getCharacteristic(Characteristic.StatusFault).updateValue(Characteristic.StatusFault.GENERAL_FAULT);
+						this.hcService.getCharacteristic(Characteristic.StatusFault).updateValue(Characteristic.StatusFault.GENERAL_FAULT);
 					}
 				}.bind(this));
 			break;
@@ -241,43 +241,43 @@ PanasonicAC.prototype = {
 						// Check the temperatures are accurate then set the Current Temperature & Current Heater Cooler State
 						if (json['parameters']['insideTemperature'] < 100) {
 							this.values.CurrentTemperature = json['parameters']['insideTemperature'];
-							this.HeaterCooler.getCharacteristic(Characteristic.CurrentTemperature).updateValue(this.values.CurrentTemperature);
+							this.hcService.getCharacteristic(Characteristic.CurrentTemperature).updateValue(this.values.CurrentTemperature);
 
-							if (json['parameters']['insideTemperature'] < json['parameters']['temperatureSet']) {this.HeaterCooler.getCharacteristic(Characteristic.CurrentHeaterCoolerState).updateValue(Characteristic.CurrentHeaterCoolerState.HEATING);}
-							else if (json['parameters']['insideTemperature'] > json['parameters']['temperatureSet']) {this.HeaterCooler.getCharacteristic(Characteristic.CurrentHeaterCoolerState).updateValue(Characteristic.CurrentHeaterCoolerState.COOLING);}
-							else {this.HeaterCooler.getCharacteristic(Characteristic.CurrentHeaterCoolerState).updateValue(Characteristic.CurrentHeaterCoolerState.IDLE);}
+							if (json['parameters']['insideTemperature'] < json['parameters']['temperatureSet']) {this.hcService.getCharacteristic(Characteristic.CurrentHeaterCoolerState).updateValue(Characteristic.CurrentHeaterCoolerState.HEATING);}
+							else if (json['parameters']['insideTemperature'] > json['parameters']['temperatureSet']) {this.hcService.getCharacteristic(Characteristic.CurrentHeaterCoolerState).updateValue(Characteristic.CurrentHeaterCoolerState.COOLING);}
+							else {this.hcService.getCharacteristic(Characteristic.CurrentHeaterCoolerState).updateValue(Characteristic.CurrentHeaterCoolerState.IDLE);}
 						}
 						else if (json['parameters']['outTemperature'] < 100) {
 							this.values.CurrentTemperature = json['parameters']['outTemperature'];
-							this.HeaterCooler.getCharacteristic(Characteristic.CurrentTemperature).updateValue(this.values.CurrentTemperature);
+							this.hcService.getCharacteristic(Characteristic.CurrentTemperature).updateValue(this.values.CurrentTemperature);
 
-							if (json['parameters']['outTemperature'] < json['parameters']['temperatureSet']) {this.HeaterCooler.getCharacteristic(Characteristic.CurrentHeaterCoolerState).updateValue(Characteristic.CurrentHeaterCoolerState.HEATING);}
-							else if (json['parameters']['outTemperature'] > json['parameters']['temperatureSet']) {this.HeaterCooler.getCharacteristic(Characteristic.CurrentHeaterCoolerState).updateValue(Characteristic.CurrentHeaterCoolerState.COOLING);}
-							else {this.HeaterCooler.getCharacteristic(Characteristic.CurrentHeaterCoolerState).updateValue(Characteristic.CurrentHeaterCoolerState.IDLE);}
+							if (json['parameters']['outTemperature'] < json['parameters']['temperatureSet']) {this.hcService.getCharacteristic(Characteristic.CurrentHeaterCoolerState).updateValue(Characteristic.CurrentHeaterCoolerState.HEATING);}
+							else if (json['parameters']['outTemperature'] > json['parameters']['temperatureSet']) {this.hcService.getCharacteristic(Characteristic.CurrentHeaterCoolerState).updateValue(Characteristic.CurrentHeaterCoolerState.COOLING);}
+							else {this.hcService.getCharacteristic(Characteristic.CurrentHeaterCoolerState).updateValue(Characteristic.CurrentHeaterCoolerState.IDLE);}
 						}
 						else {
 							this.values.CurrentTemperature = 100;
-							this.HeaterCooler.getCharacteristic(Characteristic.CurrentTemperature).updateValue(100);
-							this.HeaterCooler.getCharacteristic(Characteristic.CurrentHeaterCoolerState).updateValue(Characteristic.CurrentHeaterCoolerState.IDLE);
+							this.hcService.getCharacteristic(Characteristic.CurrentTemperature).updateValue(100);
+							this.hcService.getCharacteristic(Characteristic.CurrentHeaterCoolerState).updateValue(Characteristic.CurrentHeaterCoolerState.IDLE);
 						}
 
 						// Set the Threshold Temperature
 						this.values.ThresholdTemperature = json['parameters']['temperatureSet'];
-						this.HeaterCooler.getCharacteristic(Characteristic.HeatingThresholdTemperature).updateValue(this.values.ThresholdTemperature);
-						this.HeaterCooler.getCharacteristic(Characteristic.CoolingThresholdTemperature).updateValue(this.values.ThresholdTemperature);
+						this.hcService.getCharacteristic(Characteristic.HeatingThresholdTemperature).updateValue(this.values.ThresholdTemperature);
+						this.hcService.getCharacteristic(Characteristic.CoolingThresholdTemperature).updateValue(this.values.ThresholdTemperature);
 
 						// Set the Target Heater Cooler State
 						switch (json['parameters']['operationMode']) {
 							case 0: // auto
-								this.HeaterCooler.getCharacteristic(Characteristic.TargetHeaterCoolerState).updateValue(Characteristic.TargetHeaterCoolerState.AUTO);
+								this.hcService.getCharacteristic(Characteristic.TargetHeaterCoolerState).updateValue(Characteristic.TargetHeaterCoolerState.AUTO);
 								break;
 
 							case 3: // heat
-								this.HeaterCooler.getCharacteristic(Characteristic.TargetHeaterCoolerState).updateValue(Characteristic.TargetHeaterCoolerState.HEAT);
+								this.hcService.getCharacteristic(Characteristic.TargetHeaterCoolerState).updateValue(Characteristic.TargetHeaterCoolerState.HEAT);
 								break;
 
 							case 2: // cool
-								this.HeaterCooler.getCharacteristic(Characteristic.TargetHeaterCoolerState).updateValue(Characteristic.TargetHeaterCoolerState.COOL);
+								this.hcService.getCharacteristic(Characteristic.TargetHeaterCoolerState).updateValue(Characteristic.TargetHeaterCoolerState.COOL);
 								break;
 						}
 
@@ -289,7 +289,7 @@ PanasonicAC.prototype = {
 						try {this.log("Could not send GET command | Error # " + body['code'] + ": " + body['message']);}
 						catch(err) {this.log("Could not send GET command | Unknown error. Did the API version change?", err);}
 
-						this.HeaterCooler.getCharacteristic(Characteristic.StatusFault).updateValue(Characteristic.StatusFault.GENERAL_FAULT);
+						this.hcService.getCharacteristic(Characteristic.StatusFault).updateValue(Characteristic.StatusFault.GENERAL_FAULT);
 					}
 				}.bind(this));
 			break;
@@ -331,21 +331,21 @@ PanasonicAC.prototype = {
 						parameters = {
 							"operationMode": 2
 						};
-						this.HeaterCooler.getCharacteristic(Characteristic.CurrentHeaterCoolerState).updateValue(3);
+						this.hcService.getCharacteristic(Characteristic.CurrentHeaterCoolerState).updateValue(3);
 					break;
 
 					case Characteristic.TargetHeaterCoolerState.HEAT:
 						parameters = {
 							"operationMode": 3
 						};
-						this.HeaterCooler.getCharacteristic(Characteristic.CurrentHeaterCoolerState).updateValue(2);
+						this.hcService.getCharacteristic(Characteristic.CurrentHeaterCoolerState).updateValue(2);
 					break;
 
 					case Characteristic.TargetHeaterCoolerState.AUTO:
 						parameters = {
 							"operationMode": 0
 						};
-						this.HeaterCooler.getCharacteristic(Characteristic.CurrentHeaterCoolerState).updateValue(0);
+						this.hcService.getCharacteristic(Characteristic.CurrentHeaterCoolerState).updateValue(0);
 					break;
 				}
 			break;
@@ -403,13 +403,13 @@ PanasonicAC.prototype = {
 
 				if (body.result !== 0) {
 					this.log("Could not send SET command | Error # " + body['code'] + ": " + body['message']);
-					this.HeaterCooler.getCharacteristic(Characteristic.StatusFault).updateValue(Characteristic.StatusFault.GENERAL_FAULT);
+					this.hcService.getCharacteristic(Characteristic.StatusFault).updateValue(Characteristic.StatusFault.GENERAL_FAULT);
 				}
-				else {this.HeaterCooler.getCharacteristic(Characteristic.StatusFault).updateValue(Characteristic.StatusFault.NO_FAULT);}
+				else {this.hcService.getCharacteristic(Characteristic.StatusFault).updateValue(Characteristic.StatusFault.NO_FAULT);}
 			}
 			else {
 				this.log("Could not send SET command | Error # " + body['code'] + ": " + body['message']);
-				this.HeaterCooler.getCharacteristic(Characteristic.StatusFault).updateValue(Characteristic.StatusFault.GENERAL_FAULT);
+				this.hcService.getCharacteristic(Characteristic.StatusFault).updateValue(Characteristic.StatusFault.GENERAL_FAULT);
 			}
 		}.bind(this));
 	}
