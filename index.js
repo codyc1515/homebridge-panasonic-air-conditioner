@@ -252,7 +252,7 @@ PanasonicAC.prototype = {
 						var json = JSON.parse(body);
 
 						// Check the temperatures are accurate then set the Current Temperature & Current Heater Cooler State
-						if (json['parameters']['insideTemperature'] < 100) {
+						if (json['parameters']['insideTemperature'] < 99) {
 							this.values.CurrentTemperature = json['parameters']['insideTemperature'];
 							this.hcService.getCharacteristic(Characteristic.CurrentTemperature).updateValue(this.values.CurrentTemperature);
 
@@ -260,7 +260,7 @@ PanasonicAC.prototype = {
 							else if (json['parameters']['insideTemperature'] > json['parameters']['temperatureSet']) {this.hcService.getCharacteristic(Characteristic.CurrentHeaterCoolerState).updateValue(Characteristic.CurrentHeaterCoolerState.COOLING);}
 							else {this.hcService.getCharacteristic(Characteristic.CurrentHeaterCoolerState).updateValue(Characteristic.CurrentHeaterCoolerState.IDLE);}
 						}
-						else if (json['parameters']['outTemperature'] < 100) {
+						else if (json['parameters']['outTemperature'] < 99) {
 							this.values.CurrentTemperature = json['parameters']['outTemperature'];
 							this.hcService.getCharacteristic(Characteristic.CurrentTemperature).updateValue(this.values.CurrentTemperature);
 
@@ -269,8 +269,8 @@ PanasonicAC.prototype = {
 							else {this.hcService.getCharacteristic(Characteristic.CurrentHeaterCoolerState).updateValue(Characteristic.CurrentHeaterCoolerState.IDLE);}
 						}
 						else {
-							this.values.CurrentTemperature = 100;
-							this.hcService.getCharacteristic(Characteristic.CurrentTemperature).updateValue(100);
+							this.values.CurrentTemperature = 0;
+							this.hcService.getCharacteristic(Characteristic.CurrentTemperature).updateValue(0);
 							this.hcService.getCharacteristic(Characteristic.CurrentHeaterCoolerState).updateValue(Characteristic.CurrentHeaterCoolerState.IDLE);
 						}
 
