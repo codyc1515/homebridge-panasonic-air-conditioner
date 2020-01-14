@@ -19,7 +19,7 @@ function PanasonicAC(log, config) {
 	this.debug = config["debug"] || false;
 	this.token = null;
 	this.device = null;
-	this.version = "1.5.2";
+	this.version = "1.6.0";
 
 	this.values = [];
 	this.values.Active = Characteristic.Active.INACTIVE;
