@@ -31,7 +31,8 @@ function PanasonicAC(log, config) {
 	this._login();
 
 	// Refresh the login token every 3 hours
-	setInterval(function() {this._login();}, 10800000);
+	// Not working as expected so commit it.
+	// setInterval(function() {this._login();}, 10800000);
 }
 
 PanasonicAC.prototype = {
