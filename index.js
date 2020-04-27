@@ -221,9 +221,6 @@ PanasonicAC.prototype = {
 						// Set Status Fault
 						if(!json['parameters']['online'] || json['parameters']['errorStatusFlg']) {this.hcService.getCharacteristic(Characteristic.StatusFault).updateValue(Characteristic.StatusFault.GENERAL_FAULT);}
 						else {this.hcService.getCharacteristic(Characteristic.StatusFault).updateValue(Characteristic.StatusFault.NO_FAULT);}
-
-						// Callback successfully with the Active state
-						callback(null, this.values.Active);
 					}
 					else {
 						// Not sending a callback if the command fails means the acceossry will "Not respond" which more accurately reflects the user experience
@@ -232,6 +229,9 @@ PanasonicAC.prototype = {
 
 						this.hcService.getCharacteristic(Characteristic.StatusFault).updateValue(Characteristic.StatusFault.GENERAL_FAULT);
 					}
+
+					// Callback successfully with the Active state
+					callback(null, this.values.Active);
 				}.bind(this));
 			break;
 
