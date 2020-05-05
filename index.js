@@ -12,6 +12,7 @@ module.exports = function(homebridge) {
 };
 
 function PanasonicAC(log, config) {
+	_this = this;
 	this.log = log;
 	this.name = config["name"];
 	this.email = config["email"];
@@ -31,7 +32,7 @@ function PanasonicAC(log, config) {
 	this._login();
 
 	// Refresh the login token every 3 hours
-	setInterval(function() {this._login();}, 10800000);
+	setInterval(function() {_this._login();}, 10800000);
 }
 
 PanasonicAC.prototype = {
