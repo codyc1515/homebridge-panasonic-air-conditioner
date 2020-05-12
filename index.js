@@ -27,11 +27,16 @@ function PanasonicAC(log, config) {
 	this.values.ThresholdTemperature = null;
 	this.values.RotationSpeed = 0;
 
-	// Log us in
-	this._login();
+  // Start running the refresh process
+  try {
+		// Log us in
+		this._login(true);
 
-	// Refresh the login token every 3 hours
-	setInterval(function() {this._login();}, 10800000);
+    // Get the data initially
+    this._refresh();
+
+  }
+  catch(err) {this.log("An unknown error occured", err);}
 }
 
 PanasonicAC.prototype = {
@@ -41,7 +46,7 @@ PanasonicAC.prototype = {
 		callback();
 	},
 
-	_login: function() {
+	_login: function(isInitial) {
 		// Log us in
 		request.post({
 			url: "https://accsmart.panasonic.com/auth/login/",
@@ -76,6 +81,17 @@ PanasonicAC.prototype = {
 						var body = JSON.parse(body);
 						this.device = body['groupList'][0]['deviceIdList'][0]['deviceGuid'];
 
+						if(isInitial) {
+							// Refresh the data on initial load
+							this._refresh();
+
+					    // Refresh the data every 10 minutes
+					    setInterval(function() {this._refresh();}.bind(this), 600000);
+
+							// Refresh the login token every 3 hours
+							setInterval(function() {this._login(false);}.bind(this), 10800000);
+						}
+
 						this.log("Logged into Panasonic account");
 						return true;
 					}
@@ -93,6 +109,104 @@ PanasonicAC.prototype = {
 
 				this.hcService.getCharacteristic(Characteristic.StatusFault).updateValue(Characteristic.StatusFault.GENERAL_FAULT);
 				return false;
+			}
+		}.bind(this));
+	},
+
+	_refresh: function() {
+		if(this.debug) {this.log("Sent GET command for refresh");}
+
+		request.get({
+			url: "https://accsmart.panasonic.com/deviceStatus/now/" + this.device,
+			headers: {
+				"Accept": "application/json; charset=UTF-8",
+				"Content-Type": "application/json",
+				"X-APP-TYPE": 0,
+				"X-APP-VERSION": this.version,
+				"X-User-Authorization": this.token
+			},
+			rejectUnauthorized: false
+		}, function(err, response, body) {
+			if (!err && response.statusCode == 200) {
+				var json = JSON.parse(body);
+
+				// Set the Active state
+				if (json['parameters']['operate'] == 1) {
+					this.values.Active = Characteristic.Active.ACTIVE;
+					this.hcService.getCharacteristic(Characteristic.Active).updateValue(Characteristic.Active.ACTIVE);
+				}
+				else {
+					this.values.Active = Characteristic.Active.INACTIVE;
+					this.hcService.getCharacteristic(Characteristic.Active).updateValue(Characteristic.Active.INACTIVE);
+				}
+
+				// Check the temperatures are accurate then set the Current Temperature & Current Heater Cooler State
+				if (json['parameters']['insideTemperature'] < 99) {
+					this.values.CurrentTemperature = json['parameters']['insideTemperature'];
+					this.hcService.getCharacteristic(Characteristic.CurrentTemperature).updateValue(this.values.CurrentTemperature);
+
+					if (json['parameters']['insideTemperature'] < json['parameters']['temperatureSet']) {this.hcService.getCharacteristic(Characteristic.CurrentHeaterCoolerState).updateValue(Characteristic.CurrentHeaterCoolerState.HEATING);}
+					else if (json['parameters']['insideTemperature'] > json['parameters']['temperatureSet']) {this.hcService.getCharacteristic(Characteristic.CurrentHeaterCoolerState).updateValue(Characteristic.CurrentHeaterCoolerState.COOLING);}
+					else {this.hcService.getCharacteristic(Characteristic.CurrentHeaterCoolerState).updateValue(Characteristic.CurrentHeaterCoolerState.IDLE);}
+				}
+				else if (json['parameters']['outTemperature'] < 99) {
+					this.values.CurrentTemperature = json['parameters']['outTemperature'];
+					this.hcService.getCharacteristic(Characteristic.CurrentTemperature).updateValue(this.values.CurrentTemperature);
+
+					if (json['parameters']['outTemperature'] < json['parameters']['temperatureSet']) {this.hcService.getCharacteristic(Characteristic.CurrentHeaterCoolerState).updateValue(Characteristic.CurrentHeaterCoolerState.HEATING);}
+					else if (json['parameters']['outTemperature'] > json['parameters']['temperatureSet']) {this.hcService.getCharacteristic(Characteristic.CurrentHeaterCoolerState).updateValue(Characteristic.CurrentHeaterCoolerState.COOLING);}
+					else {this.hcService.getCharacteristic(Characteristic.CurrentHeaterCoolerState).updateValue(Characteristic.CurrentHeaterCoolerState.IDLE);}
+				}
+				else {
+					this.values.CurrentTemperature = 0;
+					this.hcService.getCharacteristic(Characteristic.CurrentTemperature).updateValue(0);
+					this.hcService.getCharacteristic(Characteristic.CurrentHeaterCoolerState).updateValue(Characteristic.CurrentHeaterCoolerState.IDLE);
+				}
+
+				// Set the Threshold Temperature
+				this.values.ThresholdTemperature = json['parameters']['temperatureSet'];
+				this.hcService.getCharacteristic(Characteristic.HeatingThresholdTemperature).updateValue(this.values.ThresholdTemperature);
+				this.hcService.getCharacteristic(Characteristic.CoolingThresholdTemperature).updateValue(this.values.ThresholdTemperature);
+
+				// Set the Target Heater Cooler State
+				switch (json['parameters']['operationMode']) {
+					case 0: // auto
+						this.hcService.getCharacteristic(Characteristic.TargetHeaterCoolerState).updateValue(Characteristic.TargetHeaterCoolerState.AUTO);
+						break;
+
+					case 3: // heat
+						this.hcService.getCharacteristic(Characteristic.TargetHeaterCoolerState).updateValue(Characteristic.TargetHeaterCoolerState.HEAT);
+						break;
+
+					case 2: // cool
+						this.hcService.getCharacteristic(Characteristic.TargetHeaterCoolerState).updateValue(Characteristic.TargetHeaterCoolerState.COOL);
+						break;
+				}
+
+				// Set the Rotation Speed
+				// RotationSpeed = 6 (the max in HomeKit) is converted to 0 for Auto mode
+				if(json['parameters']['fanSpeed'] == 0) {json['parameters']['fanSpeed'] = 6;}
+				this.values.RotationSpeed = json['parameters']['fanSpeed'];
+				this.hcService.getCharacteristic(Characteristic.RotationSpeed).updateValue(this.values.RotationSpeed);
+
+				// Set the Swing Mode
+				switch (json['parameters']['fanAutoMode']) {
+					// These are inverted in Panasonic's API
+					case 0: this.values.SwingMode = 1; break;
+					case 1: this.values.SwingMode = 0; break;
+				}
+				this.hcService.getCharacteristic(Characteristic.SwingMode).updateValue(this.values.SwingMode);
+
+				// Set Status Fault
+				if(!json['parameters']['online'] || json['parameters']['errorStatusFlg']) {this.hcService.getCharacteristic(Characteristic.StatusFault).updateValue(Characteristic.StatusFault.GENERAL_FAULT);}
+				else {this.hcService.getCharacteristic(Characteristic.StatusFault).updateValue(Characteristic.StatusFault.NO_FAULT);}
+			}
+			else {
+				// Not sending a callback if the command fails means the acceossry will "Not respond" which more accurately reflects the user experience
+				try {this.log("Could not send GET command | HTTP response", response.statusCode, "| Error #", body['code'], ":", body['message']);}
+				catch(err) {this.log("Could not send GET command | Unknown error. Did the API version change?", err);}
+
+				this.hcService.getCharacteristic(Characteristic.StatusFault).updateValue(Characteristic.StatusFault.GENERAL_FAULT);
 			}
 		}.bind(this));
 	},
@@ -179,139 +293,13 @@ PanasonicAC.prototype = {
 		if(this.debug) {this.log("GET", CharacteristicName);}
 
 		switch (CharacteristicName) {
-			case "Active":
-				request.get({
-					url: "https://accsmart.panasonic.com/deviceStatus/now/" + this.device,
-					headers: {
-						"Accept": "application/json; charset=UTF-8",
-						"Content-Type": "application/json",
-						"X-APP-TYPE": 0,
-						"X-APP-VERSION": this.version,
-						"X-User-Authorization": this.token
-					},
-					rejectUnauthorized: false
-				}, function(err, response, body) {
-					if (!err && response.statusCode == 200) {
-						var json = JSON.parse(body);
-
-						// Set the Rotation Speed
-						// RotationSpeed = 6 (the max in HomeKit) is converted to 0 for Auto mode
-						if(json['parameters']['fanSpeed'] == 0) {json['parameters']['fanSpeed'] = 6;}
-						this.values.RotationSpeed = json['parameters']['fanSpeed'];
-						this.hcService.getCharacteristic(Characteristic.RotationSpeed).updateValue(this.values.RotationSpeed);
-
-						// Set the Swing Mode
-						switch (json['parameters']['fanAutoMode']) {
-							// These are inverted in Panasonic's API
-							case 0: this.values.SwingMode = 1; break;
-							case 1: this.values.SwingMode = 0; break;
-						}
-						this.hcService.getCharacteristic(Characteristic.SwingMode).updateValue(this.values.SwingMode);
-
-						// Set the Active state
-						if (json['parameters']['operate'] == 1) {
-							this.values.Active = Characteristic.Active.ACTIVE;
-							this.hcService.getCharacteristic(Characteristic.Active).updateValue(Characteristic.Active.ACTIVE);
-						}
-						else {
-							this.values.Active = Characteristic.Active.INACTIVE;
-							this.hcService.getCharacteristic(Characteristic.Active).updateValue(Characteristic.Active.INACTIVE);
-						}
-
-						// Set Status Fault
-						if(!json['parameters']['online'] || json['parameters']['errorStatusFlg']) {this.hcService.getCharacteristic(Characteristic.StatusFault).updateValue(Characteristic.StatusFault.GENERAL_FAULT);}
-						else {this.hcService.getCharacteristic(Characteristic.StatusFault).updateValue(Characteristic.StatusFault.NO_FAULT);}
-					}
-					else {
-						// Not sending a callback if the command fails means the acceossry will "Not respond" which more accurately reflects the user experience
-						try {this.log("Could not send GET command | HTTP response", response.statusCode, "| Error #", body['code'], ":", body['message']);}
-						catch(err) {this.log("Could not send GET command | Unknown error. Did the API version change?", err);}
-
-						this.hcService.getCharacteristic(Characteristic.StatusFault).updateValue(Characteristic.StatusFault.GENERAL_FAULT);
-					}
-
-					// Callback successfully with the Active state
-					callback(null, this.values.Active);
-				}.bind(this));
-			break;
-
-			case "CurrentTemperature":
-				// Make the call again, otherwise a NULL value will be returned back to HomeKit while we wait for the GET Active call to complete (ideally there would be a promise here to avoid this)
-				request.get({
-					url: "https://accsmart.panasonic.com/deviceStatus/now/" + this.device,
-					headers: {
-						"Accept": "application/json; charset=UTF-8",
-						"Content-Type": "application/json",
-						"X-APP-TYPE": 0,
-						"X-APP-VERSION": this.version,
-						"X-User-Authorization": this.token
-					},
-					rejectUnauthorized: false
-				}, function(err, response, body) {
-					if (!err && response.statusCode == 200) {
-						var json = JSON.parse(body);
-
-						// Check the temperatures are accurate then set the Current Temperature & Current Heater Cooler State
-						if (json['parameters']['insideTemperature'] < 99) {
-							this.values.CurrentTemperature = json['parameters']['insideTemperature'];
-							this.hcService.getCharacteristic(Characteristic.CurrentTemperature).updateValue(this.values.CurrentTemperature);
-
-							if (json['parameters']['insideTemperature'] < json['parameters']['temperatureSet']) {this.hcService.getCharacteristic(Characteristic.CurrentHeaterCoolerState).updateValue(Characteristic.CurrentHeaterCoolerState.HEATING);}
-							else if (json['parameters']['insideTemperature'] > json['parameters']['temperatureSet']) {this.hcService.getCharacteristic(Characteristic.CurrentHeaterCoolerState).updateValue(Characteristic.CurrentHeaterCoolerState.COOLING);}
-							else {this.hcService.getCharacteristic(Characteristic.CurrentHeaterCoolerState).updateValue(Characteristic.CurrentHeaterCoolerState.IDLE);}
-						}
-						else if (json['parameters']['outTemperature'] < 99) {
-							this.values.CurrentTemperature = json['parameters']['outTemperature'];
-							this.hcService.getCharacteristic(Characteristic.CurrentTemperature).updateValue(this.values.CurrentTemperature);
-
-							if (json['parameters']['outTemperature'] < json['parameters']['temperatureSet']) {this.hcService.getCharacteristic(Characteristic.CurrentHeaterCoolerState).updateValue(Characteristic.CurrentHeaterCoolerState.HEATING);}
-							else if (json['parameters']['outTemperature'] > json['parameters']['temperatureSet']) {this.hcService.getCharacteristic(Characteristic.CurrentHeaterCoolerState).updateValue(Characteristic.CurrentHeaterCoolerState.COOLING);}
-							else {this.hcService.getCharacteristic(Characteristic.CurrentHeaterCoolerState).updateValue(Characteristic.CurrentHeaterCoolerState.IDLE);}
-						}
-						else {
-							this.values.CurrentTemperature = 0;
-							this.hcService.getCharacteristic(Characteristic.CurrentTemperature).updateValue(0);
-							this.hcService.getCharacteristic(Characteristic.CurrentHeaterCoolerState).updateValue(Characteristic.CurrentHeaterCoolerState.IDLE);
-						}
-
-						// Set the Threshold Temperature
-						this.values.ThresholdTemperature = json['parameters']['temperatureSet'];
-						this.hcService.getCharacteristic(Characteristic.HeatingThresholdTemperature).updateValue(this.values.ThresholdTemperature);
-						this.hcService.getCharacteristic(Characteristic.CoolingThresholdTemperature).updateValue(this.values.ThresholdTemperature);
-
-						// Set the Target Heater Cooler State
-						switch (json['parameters']['operationMode']) {
-							case 0: // auto
-								this.hcService.getCharacteristic(Characteristic.TargetHeaterCoolerState).updateValue(Characteristic.TargetHeaterCoolerState.AUTO);
-								break;
-
-							case 3: // heat
-								this.hcService.getCharacteristic(Characteristic.TargetHeaterCoolerState).updateValue(Characteristic.TargetHeaterCoolerState.HEAT);
-								break;
-
-							case 2: // cool
-								this.hcService.getCharacteristic(Characteristic.TargetHeaterCoolerState).updateValue(Characteristic.TargetHeaterCoolerState.COOL);
-								break;
-						}
-
-						// Callback successfully with the Current Temperature
-						callback(null, this.values.CurrentTemperature);
-					}
-					else {
-						// Not sending a callback if the command fails means the acceossry will "Not respond" which more accurately reflects the user experience
-						try {this.log("Could not send GET command | HTTP response", response.statusCode, "| Error #", body['code'], ":", body['message']);}
-						catch(err) {this.log("Could not send GET command | Unknown error. Did the API version change?", err);}
-
-						this.hcService.getCharacteristic(Characteristic.StatusFault).updateValue(Characteristic.StatusFault.GENERAL_FAULT);
-					}
-				}.bind(this));
-			break;
-
+			case "Active":								callback(null, this.values.Active);								break;
+			case "CurrentTemperature":		callback(null, this.values.CurrentTemperature);		break;
 			case "ThresholdTemperature":	callback(null, this.values.ThresholdTemperature);	break;
-			case "RotationSpeed":			callback(null, this.values.RotationSpeed);			break;
-			case "SwingMode":				callback(null, this.values.SwingMode);				break;
+			case "RotationSpeed":					callback(null, this.values.RotationSpeed);				break;
+			case "SwingMode":							callback(null, this.values.SwingMode);						break;
 
-			default:						callback(null);										break;
+			default:											callback(null);																		break;
 		}
 	},
 
@@ -412,13 +400,14 @@ PanasonicAC.prototype = {
 			rejectUnauthorized: false
 		}, function(err, response, body) {
 			if (!err && response.statusCode == 200) {
-				callback();
-
 				if (body.result !== 0) {
 					this.log("Could not send SET command | Error # " + body['code'] + ": " + body['message']);
 					this.hcService.getCharacteristic(Characteristic.StatusFault).updateValue(Characteristic.StatusFault.GENERAL_FAULT);
 				}
-				else {this.hcService.getCharacteristic(Characteristic.StatusFault).updateValue(Characteristic.StatusFault.NO_FAULT);}
+				else {
+					callback();
+					this.hcService.getCharacteristic(Characteristic.StatusFault).updateValue(Characteristic.StatusFault.NO_FAULT);
+				}
 			}
 			else {
 				try {this.log("Could not send SET command | HTTP response", response.statusCode, "| Error #", body['code'], ":", body['message']);}
