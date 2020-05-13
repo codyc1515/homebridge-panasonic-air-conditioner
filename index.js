@@ -29,11 +29,8 @@ function PanasonicAC(log, config) {
 
   // Start running the refresh process
   try {
-		// Log us in
+		// Run initial login with refresh & setup timers
 		this._login(true);
-
-    // Get the data initially
-    this._refresh();
   }
   catch(err) {this.log("An unknown error occured", err);}
 }
@@ -88,7 +85,7 @@ PanasonicAC.prototype = {
 					    setInterval(function() {this._refresh();}.bind(this), 600000);
 
 							// Refresh the login token every 3 hours
-							setInterval(function() {this._login(false);}.bind(this), 10800000);
+							setInterval(function() {this._login();}.bind(this), 10800000);
 						}
 
 						this.log("Logged into Panasonic account");
