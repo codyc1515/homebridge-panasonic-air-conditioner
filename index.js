@@ -34,7 +34,6 @@ function PanasonicAC(log, config) {
 
     // Get the data initially
     this._refresh();
-
   }
   catch(err) {this.log("An unknown error occured", err);}
 }
@@ -60,8 +59,8 @@ PanasonicAC.prototype = {
 				"loginId": this.email,
 				"language": "0",
 				"password": this.password
-			},
-			rejectUnauthorized: false
+			}
+			//,rejectUnauthorized: false
 		}, function(err, response, body) {
 			if (!err && response.statusCode == 200) {
 				this.token = body['uToken'];
@@ -74,8 +73,8 @@ PanasonicAC.prototype = {
 						"X-APP-VERSION": this.version,
 						"X-User-Authorization": this.token
 					},
-					json: "",
-					rejectUnauthorized: false
+					json: ""
+					//,rejectUnauthorized: false
 				}, function(err, response, body) {
 					if (!err && response.statusCode == 200) {
 						var body = JSON.parse(body);
@@ -124,8 +123,8 @@ PanasonicAC.prototype = {
 				"X-APP-TYPE": 0,
 				"X-APP-VERSION": this.version,
 				"X-User-Authorization": this.token
-			},
-			rejectUnauthorized: false
+			}
+			//,rejectUnauthorized: false
 		}, function(err, response, body) {
 			if (!err && response.statusCode == 200) {
 				var json = JSON.parse(body);
