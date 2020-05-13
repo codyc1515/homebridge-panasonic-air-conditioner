@@ -10,7 +10,7 @@
              "title":"Accessory Name",
              "type":"string",
              "format":"string",
-             "placeholder":"Panasonic Heat Pump",
+             "placeholder":"Panasonic Air Conditioner",
              "minLength": 1,
              "required": true
           },
@@ -29,6 +29,15 @@
             "placeholder":"Password",
             "minLength": 1,
             "required": true
+        },
+         "devicenumber":{
+            "title":"Device Number (optional)",
+            "type":"integer",
+            "format":"integer",
+            "placeholder":"1",
+            "minLength": 1,
+            "required": false,
+            "description":"If you have multiple devices, specify the device number here to select that one specifically. Otherwise, defaults to 1."
         },
          "debug":{
             "title":"Debug logging",
@@ -64,7 +73,8 @@
          "title":"Advanced configuration",
          "expandable":true,
          "items":[
-            "debug"
+          "devicenumber",
+          "debug"
          ]
       }
    ]

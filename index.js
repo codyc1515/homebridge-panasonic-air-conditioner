@@ -17,6 +17,7 @@ function PanasonicAC(log, config) {
 	this.email = config["email"];
 	this.password = config["password"];
 	this.debug = config["debug"] || false;
+	this.devicenumber = config["devicenumber"] || 1;
 	this.token = null;
 	this.device = null;
 	this.version = "1.6.0";
@@ -75,7 +76,12 @@ PanasonicAC.prototype = {
 				}, function(err, response, body) {
 					if (!err && response.statusCode == 200) {
 						var body = JSON.parse(body);
-						this.device = body['groupList'][0]['deviceIdList'][0]['deviceGuid'];
+
+						try {this.device = body['groupList'][this.devicenumber-1]['deviceIdList'][this.devicenumber-1]['deviceGuid'];}
+						catch {
+							this.log("Could not find that Panasonic Air Conditioner device number - check your device number and try again. | Error # " + body['code'] + ": " + body['message']);
+							this.hcService.getCharacteristic(Characteristic.StatusFault).updateValue(Characteristic.StatusFault.GENERAL_FAULT);
+						}
 
 						if(isInitial) {
 							// Refresh the data on initial load
