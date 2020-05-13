@@ -157,7 +157,7 @@ PanasonicAC.prototype = {
 					else {this.hcService.getCharacteristic(Characteristic.CurrentHeaterCoolerState).updateValue(Characteristic.CurrentHeaterCoolerState.IDLE);}
 				}
 				else {
-					this.values.CurrentTemperature = NULL;
+					this.values.CurrentTemperature = null;
 					this.hcService.getCharacteristic(Characteristic.CurrentTemperature).updateValue(this.values.CurrentTemperature);
 					this.hcService.getCharacteristic(Characteristic.CurrentHeaterCoolerState).updateValue(Characteristic.CurrentHeaterCoolerState.IDLE);
 				}
