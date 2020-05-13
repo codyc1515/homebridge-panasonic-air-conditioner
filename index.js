@@ -323,6 +323,7 @@ PanasonicAC.prototype = {
 						};
 					break;
 				}
+				this.hcService.getCharacteristic(Characteristic.Active).updateValue(value);
 			break;
 
 			case "TargetHeaterCoolerState":
@@ -355,6 +356,7 @@ PanasonicAC.prototype = {
 				parameters = {
 					"temperatureSet": value
 				};
+				this.hcService.getCharacteristic(Characteristic.ThresholdTemperature).updateValue(value);
 			break;
 
 			case "RotationSpeed":
@@ -363,6 +365,7 @@ PanasonicAC.prototype = {
 				parameters = {
 					"fanSpeed": value
 				};
+				this.hcService.getCharacteristic(Characteristic.RotationSpeed).updateValue(value);
 			break;
 
 			case "SwingMode":
@@ -381,6 +384,7 @@ PanasonicAC.prototype = {
 						"airSwingUD": 0
 					};
 				}
+				this.hcService.getCharacteristic(Characteristic.SwingMode).updateValue(value);
 			break;
 		}
 
@@ -405,7 +409,13 @@ PanasonicAC.prototype = {
 					this.hcService.getCharacteristic(Characteristic.StatusFault).updateValue(Characteristic.StatusFault.GENERAL_FAULT);
 				}
 				else {
+					// Callback to HomeKit now that it's done
 					callback();
+
+					// Refresh the HomeKit values after they have been set
+					this._refresh();
+
+					// Clear any faults
 					this.hcService.getCharacteristic(Characteristic.StatusFault).updateValue(Characteristic.StatusFault.NO_FAULT);
 				}
 			}
