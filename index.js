@@ -399,8 +399,8 @@ PanasonicAC.prototype = {
 			json: {
 				"deviceGuid": this.device,
 				"parameters": parameters
-			},
-			rejectUnauthorized: false
+			}
+			//,rejectUnauthorized: false
 		}, function(err, response, body) {
 			if (!err && response.statusCode == 200) {
 				if (body.result !== 0) {
