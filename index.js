@@ -30,8 +30,8 @@ function PanasonicAC(log, config) {
 
 	// Start running the refresh process
 	try {
-	  // Run initial login with refresh & setup timers
-	  this._login(true);
+		// Run initial login with refresh & setup timers
+		this._login(true);
 	}
 	catch(err) {this.log("An unknown error occured", err);}
 }
