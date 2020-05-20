@@ -87,8 +87,8 @@ PanasonicAC.prototype = {
 							// Refresh the data on initial load
 							this._refresh();
 
-					    // Refresh the data every 10 minutes
-					    setInterval(function() {this._refresh();}.bind(this), 600000);
+						    // Refresh the data every 10 minutes
+						    setInterval(function() {this._refresh();}.bind(this), 600000);
 
 							// Refresh the login token every 3 hours
 							setInterval(function() {this._login();}.bind(this), 10800000);
