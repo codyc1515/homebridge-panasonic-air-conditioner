@@ -33,7 +33,7 @@ function PanasonicAC(log, config) {
 		// Run initial login with refresh & setup timers
 		this._login(true);
 	}
-	catch(err) {this.log("An unknown error occured", err);}
+	catch(err) {this.log("Login failure", err);}
 }
 
 PanasonicAC.prototype = {
@@ -44,6 +44,8 @@ PanasonicAC.prototype = {
 	},
 
 	_login: function(isInitial) {
+		if(this.debug) {this.log("Login start");}
+
 		// Log us in
 		request.post({
 			url: "https://accsmart.panasonic.com/auth/login/",
@@ -77,9 +79,12 @@ PanasonicAC.prototype = {
 					if (!err && response.statusCode == 200) {
 						var body = JSON.parse(body);
 
-						try {this.device = body['groupList'][this.devicenumber-1]['deviceIdList'][this.devicenumber-1]['deviceGuid'];}
+						try {
+							this.log("Login complete");
+							this.device = body['groupList'][this.devicenumber-1]['deviceIdList'][this.devicenumber-1]['deviceGuid'];
+						}
 						catch {
-							this.log("Could not find that Panasonic Air Conditioner device number - check your device number and try again. | Error # " + body['code'] + ": " + body['message']);
+							this.log("Could not find device by number.", "Check your device number and try again.", "Error #", body['code'], body['message']);
 							this.hcService.getCharacteristic(Characteristic.StatusFault).updateValue(Characteristic.StatusFault.GENERAL_FAULT);
 						}
 
@@ -94,11 +99,10 @@ PanasonicAC.prototype = {
 							setInterval(function() {this._login();}.bind(this), 10800000);
 						}
 
-						this.log("Logged into Panasonic account");
 						return true;
 					}
 					else {
-						this.log("Could not find any Panasonic Air Conditioner devices | Error # " + body['code'] + ": " + body['message']);
+						this.log("Could not find any devices.", "Error #", body['code'], body['message']);
 
 						this.hcService.getCharacteristic(Characteristic.StatusFault).updateValue(Characteristic.StatusFault.GENERAL_FAULT);
 						return false;
@@ -106,8 +110,8 @@ PanasonicAC.prototype = {
 				}.bind(this));
 			}
 			else {
-				try {this.log("Could not login to Panasonic account | Error # " + body['code'] + ": " + body['message']);}
-				catch(err) {this.log("Could not login to Panasonic account | Unknown error. Did the API version change?", err);}
+				try {this.log("Login failed.", "Error #", body['code'], body['message']);}
+				catch(err) {this.log("Login failed.", "Unknown error.", "Did the API version change?", err);}
 
 				this.hcService.getCharacteristic(Characteristic.StatusFault).updateValue(Characteristic.StatusFault.GENERAL_FAULT);
 				return false;
@@ -116,7 +120,7 @@ PanasonicAC.prototype = {
 	},
 
 	_refresh: function() {
-		if(this.debug) {this.log("Sent GET command for refresh");}
+		if(this.debug) {this.log("Refresh start");}
 
 		request.get({
 			url: "https://accsmart.panasonic.com/deviceStatus/now/" + this.device,
@@ -200,13 +204,19 @@ PanasonicAC.prototype = {
 				this.hcService.getCharacteristic(Characteristic.SwingMode).updateValue(this.values.SwingMode);
 
 				// Set Status Fault
-				if(!json['parameters']['online'] || json['parameters']['errorStatusFlg']) {this.hcService.getCharacteristic(Characteristic.StatusFault).updateValue(Characteristic.StatusFault.GENERAL_FAULT);}
-				else {this.hcService.getCharacteristic(Characteristic.StatusFault).updateValue(Characteristic.StatusFault.NO_FAULT);}
+				if(!json['parameters']['online'] || json['parameters']['errorStatusFlg']) {
+					this.log("Refresh failed.", "Device may be offline or in error state", "Online", json['parameters']['online'], "Error Status Flag", json['parameters']['errorStatusFlg'], "HTTP response", response.statusCode, "Error #", body['code'], body['message']);
+					this.hcService.getCharacteristic(Characteristic.StatusFault).updateValue(Characteristic.StatusFault.GENERAL_FAULT);
+				}
+				else {
+					if(this.debug) {this.log("Refresh complete");}
+					this.hcService.getCharacteristic(Characteristic.StatusFault).updateValue(Characteristic.StatusFault.NO_FAULT);
+				}
 			}
 			else {
 				// Not sending a callback if the command fails means the acceossry will "Not respond" which more accurately reflects the user experience
-				try {this.log("Could not send GET command | HTTP response", response.statusCode, "| Error #", body['code'], ":", body['message']);}
-				catch(err) {this.log("Could not send GET command | Unknown error. Did the API version change?", err);}
+				try {this.log("Refresh failed.", "HTTP response", response.statusCode, "Error #", body['code'], body['message']);}
+				catch(err) {this.log("Refresh failed.", "Unknown error.", "Did the API version change?", err);}
 
 				this.hcService.getCharacteristic(Characteristic.StatusFault).updateValue(Characteristic.StatusFault.GENERAL_FAULT);
 			}
@@ -306,7 +316,7 @@ PanasonicAC.prototype = {
 	},
 
 	_setValue: function(CharacteristicName, value, callback) {
-		if(this.debug) {this.log("SET", CharacteristicName, value);}
+		if(this.debug) {this.log("SET", CharacteristicName, value, "start");}
 
 		var parameters;
 
@@ -407,10 +417,12 @@ PanasonicAC.prototype = {
 		}, function(err, response, body) {
 			if (!err && response.statusCode == 200) {
 				if (body.result !== 0) {
-					this.log("Could not send SET command | Error # " + body['code'] + ": " + body['message']);
+					this.log("SET failed.", "Error #", body['code'], body['message']);
 					this.hcService.getCharacteristic(Characteristic.StatusFault).updateValue(Characteristic.StatusFault.GENERAL_FAULT);
 				}
 				else {
+					if(this.debug) {this.log("SET", CharacteristicName, value, "complete");}
+
 					// Callback to HomeKit now that it's done
 					callback();
 
@@ -422,8 +434,8 @@ PanasonicAC.prototype = {
 				}
 			}
 			else {
-				try {this.log("Could not send SET command | HTTP response", response.statusCode, "| Error #", body['code'], ":", body['message']);}
-				catch(err) {this.log("Could not send GET command | Unknown error. Did the API version change?", err);}
+				try {this.log("SET failed.", "HTTP response", response.statusCode, "Error #", body['code'], body['message']);}
+				catch(err) {this.log("SET failed.", "Unknown error.", "Did the API version change?", err);}
 
 				this.hcService.getCharacteristic(Characteristic.StatusFault).updateValue(Characteristic.StatusFault.GENERAL_FAULT);
 			}
