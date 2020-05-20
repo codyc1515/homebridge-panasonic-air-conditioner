@@ -23,10 +23,10 @@ function PanasonicAC(log, config) {
 	this.version = "1.6.0";
 
 	this.values = [];
-	this.values.Active = Characteristic.Active.INACTIVE;
-	this.values.CurrentTemperature = null;
-	this.values.ThresholdTemperature = null;
-	this.values.RotationSpeed = 0;
+	this.values.Active = Characteristic.Active.INACTIVE;	// Default active = inactive
+	this.values.CurrentTemperature = 0;						// Default temperature = 0
+	this.values.ThresholdTemperature = 0;					// Default temperature = 0
+	this.values.RotationSpeed = 6;							// Default rotation speed = 6 (Auto)
 
 	// Start running the refresh process
 	try {
