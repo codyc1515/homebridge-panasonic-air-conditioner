@@ -28,12 +28,12 @@ function PanasonicAC(log, config) {
 	this.values.ThresholdTemperature = null;
 	this.values.RotationSpeed = 0;
 
-  // Start running the refresh process
-  try {
-		// Run initial login with refresh & setup timers
-		this._login(true);
-  }
-  catch(err) {this.log("An unknown error occured", err);}
+	// Start running the refresh process
+	try {
+	  // Run initial login with refresh & setup timers
+	  this._login(true);
+	}
+	catch(err) {this.log("An unknown error occured", err);}
 }
 
 PanasonicAC.prototype = {
@@ -295,13 +295,13 @@ PanasonicAC.prototype = {
 		if(this.debug) {this.log("GET", CharacteristicName);}
 
 		switch (CharacteristicName) {
-			case "Active":								callback(null, this.values.Active);								break;
+			case "Active":					callback(null, this.values.Active);					break;
 			case "CurrentTemperature":		callback(null, this.values.CurrentTemperature);		break;
 			case "ThresholdTemperature":	callback(null, this.values.ThresholdTemperature);	break;
-			case "RotationSpeed":					callback(null, this.values.RotationSpeed);				break;
-			case "SwingMode":							callback(null, this.values.SwingMode);						break;
+			case "RotationSpeed":			callback(null, this.values.RotationSpeed);			break;
+			case "SwingMode":				callback(null, this.values.SwingMode);				break;
 
-			default:											callback(null);																		break;
+			default:						callback(null);										break;
 		}
 	},
 
