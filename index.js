@@ -368,7 +368,9 @@ PanasonicAC.prototype = {
 				parameters = {
 					"temperatureSet": value
 				};
-				this.hcService.getCharacteristic(Characteristic.ThresholdTemperature).updateValue(value);
+				this.hcService.getCharacteristic(Characteristic.TargetTemperature).updateValue(value);
+				this.hcService.getCharacteristic(Characteristic.CoolingThresholdTemperature).updateValue(value);
+				this.hcService.getCharacteristic(Characteristic.HeatingThresholdTemperature).updateValue(value);
 			break;
 
 			case "RotationSpeed":
@@ -426,8 +428,8 @@ PanasonicAC.prototype = {
 					// Callback to HomeKit now that it's done
 					callback();
 
-					// Refresh the HomeKit values after they have been set
-					this._refresh();
+					// Refresh the HomeKit values after they have been set, but wait a moment as HomeKit sends the request so many times
+					//setTimeout(function() {this._refresh();}.bind(this), 5000);
 
 					// Clear any faults
 					this.hcService.getCharacteristic(Characteristic.StatusFault).updateValue(Characteristic.StatusFault.NO_FAULT);
