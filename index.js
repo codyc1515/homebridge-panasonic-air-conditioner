@@ -213,14 +213,16 @@ PanasonicAC.prototype = {
 
 				// Active
 				switch (json['parameters']['operate']) {
-					case 1:	this.hcService.getCharacteristic(Characteristic.Active).updateValue(Characteristic.Active.ACTIVE);		break;
-					case 0:	this.hcService.getCharacteristic(Characteristic.Active).updateValue(Characteristic.Active.INACTIVE);	break;
+					case 1:		this.hcService.getCharacteristic(Characteristic.Active).updateValue(Characteristic.Active.ACTIVE);		break;
+					case 0:		this.hcService.getCharacteristic(Characteristic.Active).updateValue(Characteristic.Active.INACTIVE);	break;
+					default:	this.log("Unknown Active state", json['parameters']['operate']);										break;
 				}
 
 				// Current Temperature
 				var temperature = 0;
 				if (json['parameters']['insideTemperature'] < 99) {temperature = json['parameters']['insideTemperature'];}
 				else if (json['parameters']['outTemperature'] < 99) {temperature = json['parameters']['outTemperature'];}
+				else {this.log("Unknown Temperature state", json['parameters']['insideTemperature'], json['parameters']['outTemperature']);}
 
 				this.hcService.getCharacteristic(Characteristic.CurrentTemperature).updateValue(temperature);
 
@@ -239,19 +241,21 @@ PanasonicAC.prototype = {
 				// Target Heater Cooler State
 				switch (json['parameters']['operationMode']) {
 					// Auto
-					case 0:	this.hcService.getCharacteristic(Characteristic.TargetHeaterCoolerState).updateValue(Characteristic.TargetHeaterCoolerState.AUTO);	break;
+					case 0:		this.hcService.getCharacteristic(Characteristic.TargetHeaterCoolerState).updateValue(Characteristic.TargetHeaterCoolerState.AUTO);	break;
 
 					// Heat
-					case 3:	this.hcService.getCharacteristic(Characteristic.TargetHeaterCoolerState).updateValue(Characteristic.TargetHeaterCoolerState.HEAT);	break;
+					case 3:		this.hcService.getCharacteristic(Characteristic.TargetHeaterCoolerState).updateValue(Characteristic.TargetHeaterCoolerState.HEAT);	break;
 
 					// Cool
-					case 2:	this.hcService.getCharacteristic(Characteristic.TargetHeaterCoolerState).updateValue(Characteristic.TargetHeaterCoolerState.COOL);	break;
+					case 2:		this.hcService.getCharacteristic(Characteristic.TargetHeaterCoolerState).updateValue(Characteristic.TargetHeaterCoolerState.COOL);	break;
 
 					// Dry
-					case 1:	this.hcService.getCharacteristic(Characteristic.TargetHeaterCoolerState).updateValue(Characteristic.TargetHeaterCoolerState.COOL);	break;
+					case 1:		this.hcService.getCharacteristic(Characteristic.TargetHeaterCoolerState).updateValue(Characteristic.TargetHeaterCoolerState.COOL);	break;
 
 					// Fan
-					case 4:	this.hcService.getCharacteristic(Characteristic.TargetHeaterCoolerState).updateValue(Characteristic.TargetHeaterCoolerState.COOL);	break;
+					case 4:		this.hcService.getCharacteristic(Characteristic.TargetHeaterCoolerState).updateValue(Characteristic.TargetHeaterCoolerState.COOL);	break;
+
+					default:	this.log("Unknown TargetHeaterCoolerState state", json['parameters']['operationMode']);												break;
 				}
 
 				// Rotation Speed
@@ -263,8 +267,9 @@ PanasonicAC.prototype = {
 
 				// Swing Mode
 				switch (json['parameters']['fanAutoMode']) {
-					case 0: this.hcService.getCharacteristic(Characteristic.SwingMode).updateValue(Characteristic.SwingMode.SWING_ENABLED);		break;
-					case 1: this.hcService.getCharacteristic(Characteristic.SwingMode).updateValue(Characteristic.SwingMode.SWING_DISABLED);	break;
+					case 0:		this.hcService.getCharacteristic(Characteristic.SwingMode).updateValue(Characteristic.SwingMode.SWING_ENABLED);		break;
+					case 1:		this.hcService.getCharacteristic(Characteristic.SwingMode).updateValue(Characteristic.SwingMode.SWING_DISABLED);	break;
+					default:	this.log("Unknown SwingMode state", json['parameters']['fanAutoMode']);												break;
 				}
 
 				// Threshold Temperature
