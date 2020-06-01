@@ -30,6 +30,8 @@
   },
   "bundleDependencies": false,
   "dependencies": {
+    "fakegato-history": "^0.5.6",
+    "moment": "^2.26.0",
     "request": "^2.81.0"
   },
   "deprecated": false,
@@ -55,5 +57,5 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "version": "3.0.0"
+  "version": "3.1.0"
 }

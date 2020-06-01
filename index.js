@@ -1,12 +1,18 @@
-var request = require("request");
+var request = require("request"),
+	inherits = require("util").inherits,
+	moment = require('moment');
 
-var Characteristic,
-	Service;
+var Accessory,
+	Characteristic,
+	Service,
+	FakeGatoHistoryService;
 
 module.exports = function(homebridge) {
 	Service = homebridge.hap.Service;
 	Characteristic = homebridge.hap.Characteristic;
 	Accessory = homebridge.hap.Accessory;
+
+	FakeGatoHistoryService = require('fakegato-history')(homebridge);
 
 	homebridge.registerAccessory("homebridge-panasonic-air-conditioner", "PanasonicAirConditioner", PanasonicAC);
 };
@@ -95,6 +101,9 @@ PanasonicAC.prototype = {
 			.getCharacteristic(Characteristic.SwingMode)
 			.on('set', this._setValue.bind(this, "SwingMode"));
 
+		// FakeGato Temperature
+		this.loggingService = new FakeGatoHistoryService("thermo", Accessory);
+
 		// Accessory Information Service
 		this.informationService = new Service.AccessoryInformation();
 		this.informationService
@@ -106,6 +115,7 @@ PanasonicAC.prototype = {
 
 		return [
 			this.hcService,
+			this.loggingService,
 			this.informationService
 		];
 	},
@@ -213,6 +223,9 @@ PanasonicAC.prototype = {
 				else if (json['parameters']['outTemperature'] < 99) {temperature = json['parameters']['outTemperature'];}
 
 				this.hcService.getCharacteristic(Characteristic.CurrentTemperature).updateValue(temperature);
+
+				// FakeGato Temperature
+				this.loggingService.addEntry({time: moment().unix(), currentTemp: temperature, setTemp: json['parameters']['temperatureSet'], valvePosition: 100});
 
 				// Current Heater Cooler State
 				if (temperature < json['parameters']['temperatureSet']) {this.hcService.getCharacteristic(Characteristic.CurrentHeaterCoolerState).updateValue(Characteristic.CurrentHeaterCoolerState.HEATING);}
