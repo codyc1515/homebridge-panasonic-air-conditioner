@@ -228,15 +228,30 @@ PanasonicAC.prototype = {
 				this.loggingService.addEntry({time: moment().unix(), currentTemp: temperature, setTemp: json['parameters']['temperatureSet'], valvePosition: 100});
 
 				// Current Heater Cooler State
-				if (temperature < json['parameters']['temperatureSet']) {this.hcService.getCharacteristic(Characteristic.CurrentHeaterCoolerState).updateValue(Characteristic.CurrentHeaterCoolerState.HEATING);}
-				else if (temperature > json['parameters']['temperatureSet']) {this.hcService.getCharacteristic(Characteristic.CurrentHeaterCoolerState).updateValue(Characteristic.CurrentHeaterCoolerState.COOLING);}
-				else {this.hcService.getCharacteristic(Characteristic.CurrentHeaterCoolerState).updateValue(Characteristic.CurrentHeaterCoolerState.IDLE);}
+				// If Auto, Heat or Cool then calculate the Current Heater Cooler State, otherwise if Dry / Fan set it to Cooling
+				if(json['parameters']['operationMode'] == 0 || json['parameters']['operationMode'] == 2 || json['parameters']['operationMode'] == 3) {
+					if (temperature < json['parameters']['temperatureSet']) {this.hcService.getCharacteristic(Characteristic.CurrentHeaterCoolerState).updateValue(Characteristic.CurrentHeaterCoolerState.HEATING);}
+					else if (temperature > json['parameters']['temperatureSet']) {this.hcService.getCharacteristic(Characteristic.CurrentHeaterCoolerState).updateValue(Characteristic.CurrentHeaterCoolerState.COOLING);}
+					else {this.hcService.getCharacteristic(Characteristic.CurrentHeaterCoolerState).updateValue(Characteristic.CurrentHeaterCoolerState.IDLE);}
+				}
+				else {this.hcService.getCharacteristic(Characteristic.CurrentHeaterCoolerState).updateValue(Characteristic.CurrentHeaterCoolerState.COOLING);}
 
 				// Target Heater Cooler State
 				switch (json['parameters']['operationMode']) {
+					// Auto
 					case 0:	this.hcService.getCharacteristic(Characteristic.TargetHeaterCoolerState).updateValue(Characteristic.TargetHeaterCoolerState.AUTO);	break;
+
+					// Heat
 					case 3:	this.hcService.getCharacteristic(Characteristic.TargetHeaterCoolerState).updateValue(Characteristic.TargetHeaterCoolerState.HEAT);	break;
-					case 2: this.hcService.getCharacteristic(Characteristic.TargetHeaterCoolerState).updateValue(Characteristic.TargetHeaterCoolerState.COOL);	break;
+
+					// Cool
+					case 2:	this.hcService.getCharacteristic(Characteristic.TargetHeaterCoolerState).updateValue(Characteristic.TargetHeaterCoolerState.COOL);	break;
+
+					// Dry
+					case 1:	this.hcService.getCharacteristic(Characteristic.TargetHeaterCoolerState).updateValue(Characteristic.TargetHeaterCoolerState.COOL);	break;
+
+					// Fan
+					case 4:	this.hcService.getCharacteristic(Characteristic.TargetHeaterCoolerState).updateValue(Characteristic.TargetHeaterCoolerState.COOL);	break;
 				}
 
 				// Rotation Speed
