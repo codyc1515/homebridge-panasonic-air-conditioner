@@ -241,21 +241,45 @@ PanasonicAC.prototype = {
 				// Target Heater Cooler State
 				switch (json['parameters']['operationMode']) {
 					// Auto
-					case 0:		this.hcService.getCharacteristic(Characteristic.TargetHeaterCoolerState).updateValue(Characteristic.TargetHeaterCoolerState.AUTO);	break;
+					case 0:
+						if (temperature < json['parameters']['temperatureSet']) {this.hcService.getCharacteristic(Characteristic.CurrentHeaterCoolerState).updateValue(Characteristic.CurrentHeaterCoolerState.HEATING);}
+						else if (temperature > json['parameters']['temperatureSet']) {this.hcService.getCharacteristic(Characteristic.CurrentHeaterCoolerState).updateValue(Characteristic.CurrentHeaterCoolerState.COOLING);}
+						else {this.hcService.getCharacteristic(Characteristic.CurrentHeaterCoolerState).updateValue(Characteristic.CurrentHeaterCoolerState.IDLE);}
+
+						this.hcService.getCharacteristic(Characteristic.TargetHeaterCoolerState).updateValue(Characteristic.TargetHeaterCoolerState.AUTO);
+					break;
 
 					// Heat
-					case 3:		this.hcService.getCharacteristic(Characteristic.TargetHeaterCoolerState).updateValue(Characteristic.TargetHeaterCoolerState.HEAT);	break;
+					case 3:
+						if (temperature < json['parameters']['temperatureSet']) {this.hcService.getCharacteristic(Characteristic.CurrentHeaterCoolerState).updateValue(Characteristic.CurrentHeaterCoolerState.HEATING);}
+						else {this.hcService.getCharacteristic(Characteristic.CurrentHeaterCoolerState).updateValue(Characteristic.CurrentHeaterCoolerState.IDLE);}
+
+						this.hcService.getCharacteristic(Characteristic.TargetHeaterCoolerState).updateValue(Characteristic.TargetHeaterCoolerState.HEAT);
+					break;
 
 					// Cool
-					case 2:		this.hcService.getCharacteristic(Characteristic.TargetHeaterCoolerState).updateValue(Characteristic.TargetHeaterCoolerState.COOL);	break;
+					case 2:
+						if (temperature > json['parameters']['temperatureSet']) {this.hcService.getCharacteristic(Characteristic.CurrentHeaterCoolerState).updateValue(Characteristic.CurrentHeaterCoolerState.COOLING);}
+						else {this.hcService.getCharacteristic(Characteristic.CurrentHeaterCoolerState).updateValue(Characteristic.CurrentHeaterCoolerState.IDLE);}
+
+						this.hcService.getCharacteristic(Characteristic.TargetHeaterCoolerState).updateValue(Characteristic.TargetHeaterCoolerState.COOL);
+					break;
 
 					// Dry
-					case 1:		this.hcService.getCharacteristic(Characteristic.TargetHeaterCoolerState).updateValue(Characteristic.TargetHeaterCoolerState.COOL);	break;
+					case 1:
+						this.hcService.getCharacteristic(Characteristic.CurrentHeaterCoolerState).updateValue(Characteristic.CurrentHeaterCoolerState.COOLING);
+						this.hcService.getCharacteristic(Characteristic.TargetHeaterCoolerState).updateValue(Characteristic.TargetHeaterCoolerState.COOL);
+					break;
 
 					// Fan
-					case 4:		this.hcService.getCharacteristic(Characteristic.TargetHeaterCoolerState).updateValue(Characteristic.TargetHeaterCoolerState.COOL);	break;
+					case 4:
+						this.hcService.getCharacteristic(Characteristic.CurrentHeaterCoolerState).updateValue(Characteristic.CurrentHeaterCoolerState.COOLING);
+						this.hcService.getCharacteristic(Characteristic.TargetHeaterCoolerState).updateValue(Characteristic.TargetHeaterCoolerState.COOL);
+					break;
 
-					default:	this.log("Unknown TargetHeaterCoolerState state", json['parameters']['operationMode']);												break;
+					default:
+						this.log("Unknown TargetHeaterCoolerState state", json['parameters']['operationMode']);
+					break;
 				}
 
 				// Rotation Speed
@@ -317,7 +341,8 @@ PanasonicAC.prototype = {
 					case Characteristic.TargetHeaterCoolerState.COOL:	parameters = { "operationMode": 2 };	break;
 				}
 
-				// TODO: Change the Current Heater Cooler State
+				// Update the Current Heater Cooler State
+				setTimeout(function() {this._refresh();}.bind(this), 2500);
 			break;
 
 			// Rotation Speed
