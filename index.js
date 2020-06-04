@@ -222,6 +222,7 @@ PanasonicAC.prototype = {
 				var temperature = 0;
 				if (json['parameters']['insideTemperature'] < 99) {temperature = json['parameters']['insideTemperature'];}
 				else if (json['parameters']['outTemperature'] < 99) {temperature = json['parameters']['outTemperature'];}
+				else if (this.debug && (json['parameters']['insideTemperature'] == 126 || json['parameters']['outTemperature'] == 126)) {this.log("Temperature state is not available", json['parameters']['insideTemperature'], json['parameters']['outTemperature']);}
 				else {this.log("Unknown Temperature state", json['parameters']['insideTemperature'], json['parameters']['outTemperature']);}
 
 				this.hcService.getCharacteristic(Characteristic.CurrentTemperature).updateValue(temperature);
