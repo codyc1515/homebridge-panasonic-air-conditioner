@@ -290,11 +290,8 @@ PanasonicAC.prototype = {
 				this.hcService.getCharacteristic(Characteristic.RotationSpeed).updateValue(rotationSpeed);
 
 				// Swing Mode
-				switch (json['parameters']['fanAutoMode']) {
-					case 0:		this.hcService.getCharacteristic(Characteristic.SwingMode).updateValue(Characteristic.SwingMode.SWING_ENABLED);		break;
-					case 1:		this.hcService.getCharacteristic(Characteristic.SwingMode).updateValue(Characteristic.SwingMode.SWING_DISABLED);	break;
-					default:	this.log("Unknown SwingMode state", json['parameters']['fanAutoMode']);												break;
-				}
+				if(json['parameters']['airSwingLR'] == 2 && json['parameters']['airSwingUD'] == 0) {this.hcService.getCharacteristic(Characteristic.SwingMode).updateValue(Characteristic.SwingMode.SWING_ENABLED);}
+				else {this.hcService.getCharacteristic(Characteristic.SwingMode).updateValue(Characteristic.SwingMode.SWING_DISABLED);}
 
 				// Threshold Temperature
 				this.hcService.getCharacteristic(Characteristic.HeatingThresholdTemperature).updateValue(json['parameters']['temperatureSet']);
