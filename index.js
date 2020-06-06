@@ -102,7 +102,7 @@ PanasonicAC.prototype = {
 			.on('set', this._setValue.bind(this, "SwingMode"));
 
 		// FakeGato Temperature
-		this.loggingService = new FakeGatoHistoryService("thermo", Accessory);
+		this.loggingService = new FakeGatoHistoryService("weather", Accessory);
 
 		// Accessory Information Service
 		this.informationService = new Service.AccessoryInformation();
@@ -228,7 +228,7 @@ PanasonicAC.prototype = {
 				this.hcService.getCharacteristic(Characteristic.CurrentTemperature).updateValue(temperature);
 
 				// FakeGato Temperature
-				this.loggingService.addEntry({time: moment().unix(), currentTemp: temperature, setTemp: json['parameters']['temperatureSet'], valvePosition: 100});
+				this.loggingService.addEntry({time: moment().unix(), temp: temperature});
 
 				// Current Heater Cooler State
 				// If Auto, Heat or Cool then calculate the Current Heater Cooler State, otherwise if Dry / Fan set it to Cooling
