@@ -228,7 +228,10 @@ PanasonicAC.prototype = {
 				this.hcService.getCharacteristic(Characteristic.CurrentTemperature).updateValue(temperature);
 
 				// FakeGato Temperature
-				this.loggingService.addEntry({time: moment().unix(), temp: temperature});
+				// Only send the temperature to FakeGato when the Heat Pump is switched on, otherwise it will just incorrectly record zero for every period
+				if(json['parameters']['operate'] == 1) {
+					this.loggingService.addEntry({time: moment().unix(), temp: temperature});
+				}
 
 				// Current Heater Cooler State
 				// If Auto, Heat or Cool then calculate the Current Heater Cooler State, otherwise if Dry / Fan set it to Cooling
