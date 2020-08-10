@@ -315,6 +315,10 @@ PanasonicAC.prototype = {
 					this.hcService.getCharacteristic(Characteristic.StatusFault).updateValue(Characteristic.StatusFault.GENERAL_FAULT);
 				}
 			}
+			else if(response.statusCode == 403) {
+				this.log("Refresh failed.", "Authorization error.", "Did you enter the correct username and password? Please check the details & restart Homebridge.", err);
+				this.hcService.getCharacteristic(Characteristic.StatusFault).updateValue(Characteristic.StatusFault.GENERAL_FAULT);
+			}
 			else {
 				try {this.log("Refresh failed.", "HTTP response", response.statusCode, "Error #", body['code'], body['message']);}
 				catch(err) {this.log("Refresh failed.", "Unknown error.", "Did the API version change?", err);}
