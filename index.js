@@ -20,7 +20,7 @@ module.exports = function(homebridge) {
 function PanasonicAC(log, config) {
 	this.log = log;
 	this.debug = config["debug"] || false;
-	this.name = config["name"];
+	this.name = config["name"] || "Panasonic Air Conditioner";
 
 	this.email = config["email"];
 	this.password = config["password"];
