@@ -192,7 +192,9 @@ PanasonicAC.prototype = {
 	},
 
 	_getValue: function(CharacteristicName, callback) {
-		callback();
+		if(this.debug) {this.log("GET", CharacteristicName);}
+
+		callback(null);
 	},
 
 	_refresh: function() {
