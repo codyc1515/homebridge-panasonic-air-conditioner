@@ -1,8 +1,8 @@
 {
   "_from": "homebridge-panasonic-air-conditioner@latest",
-  "_id": "homebridge-panasonic-air-conditioner@2.1.2",
+  "_id": "homebridge-panasonic-air-conditioner@3.3.4",
   "_inBundle": false,
-  "_integrity": "sha512-7p6C5P9qpJ4iXUwJUMSixhgWlm+Vl/3K02j0ThtqdbfdGPDU76wROZkAbsLdaRw7ikmJvqUIfpbGtwZUvSWXVA==",
+  "_integrity": "sha512-XrNWwJKSgQyHpHqeYcE9rVtqcyCRlQwgtKHA0cZN6ya6heeNWpDhac21fQMAhFchXSvWJHF0o18xsDfJMlr3Vw==",
   "_location": "/homebridge-panasonic-air-conditioner",
   "_phantomChildren": {},
   "_requested": {
@@ -18,8 +18,8 @@
   "_requiredBy": [
     "#USER"
   ],
-  "_resolved": "https://registry.npmjs.org/homebridge-panasonic-air-conditioner/-/homebridge-panasonic-air-conditioner-2.1.2.tgz",
-  "_shasum": "31ab5c65d2defae1392cd12e1624aa7e13d30bb6",
+  "_resolved": "https://registry.npmjs.org/homebridge-panasonic-air-conditioner/-/homebridge-panasonic-air-conditioner-3.3.4.tgz",
+  "_shasum": "f15cf929e7f632977ee15237922f51b60ab5d831",
   "_spec": "homebridge-panasonic-air-conditioner@latest",
   "_where": "/usr/local/lib",
   "author": {
@@ -57,5 +57,5 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "version": "3.3.4"
+  "version": "3.4.0"
 }

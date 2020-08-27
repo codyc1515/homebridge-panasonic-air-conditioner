@@ -316,8 +316,14 @@ PanasonicAC.prototype = {
 				}
 			}
 			else if(response.statusCode == 403) {
-				this.log("Refresh failed.", "Authorization error.", "Did you enter the correct username and password? Please check the details & restart Homebridge.", err);
+				this.log("Refresh failed.", "Login error.", "Did you enter the correct username and password? Please check the details & restart Homebridge.", err);
 				this.hcService.getCharacteristic(Characteristic.StatusFault).updateValue(Characteristic.StatusFault.GENERAL_FAULT);
+			}
+			else if(response.statusCode == 401) {
+				this.log("Refresh failed.", "Token error.", "The token may have expired - lets log back in again.", err);
+				this.hcService.getCharacteristic(Characteristic.StatusFault).updateValue(Characteristic.StatusFault.GENERAL_FAULT);
+
+				this._login();
 			}
 			else {
 				try {this.log("Refresh failed.", "HTTP response", response.statusCode, "Error #", body['code'], body['message']);}
@@ -409,6 +415,14 @@ PanasonicAC.prototype = {
 				if (body.result !== 0) {
 					this.log("SET failed.", "Error #", body['code'], body['message']);
 					this.hcService.getCharacteristic(Characteristic.StatusFault).updateValue(Characteristic.StatusFault.GENERAL_FAULT);
+
+					if(response.statusCode == 403) {
+						this.log("Login error.", "Did you enter the correct username and password? Please check the details & restart Homebridge.", err);
+					}
+					else if(response.statusCode == 401) {
+						this.log("Token error.", "The token may have expired - lets log back in again.", err);
+						this._login();
+					}
 				}
 				else {
 					if(this.debug) {this.log("SET", CharacteristicName, value, "complete");}
