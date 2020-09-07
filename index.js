@@ -27,7 +27,7 @@ function PanasonicAC(log, config) {
 	this.uToken = null;
 
 	this.deviceNumber = config["devicenumber"] || 1;
-	this.version = "1.6.0";
+	this.version = "1.7.0";
 
 	// Start running the refresh process (login and set timer)
 	try {this._login(true);}
