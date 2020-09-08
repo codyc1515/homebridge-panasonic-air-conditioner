@@ -1,0 +1,11 @@
+# Dependency directory
+node_modules
+
+# npm cache directory
+.npm
+
+#vscode 
+.vscode/
+
+#temp
+temp/
