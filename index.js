@@ -1,6 +1,9 @@
+const { throws } = require("assert");
+
 var request = require("request"),
 	inherits = require("util").inherits,
-	moment = require('moment');
+	moment = require('moment'), 
+	got = require('got');
 
 var Accessory,
 	Characteristic,
@@ -182,8 +185,23 @@ PanasonicAC.prototype = {
 				}.bind(this));
 			}
 			else {
-				try {this.log("Login failed.", "Error #", body['code'], body['message']);}
-				catch(err) {this.log("Login failed.", "Unknown error.", "Did the API version change?", err);}
+				try {
+					this.log("Login failed.", "Error #", body['code'], body['message']);
+					if(body['code'] === 4106){
+						this.log("App version has changed, attempting to fetch new app version");
+						(async () => {
+							this.version = await getNewAppVersion.call(this);
+							this.log("Re-attempting login with new version in 30 seconds");
+						setTimeout(() => {
+							this._login(true);
+						  }, 30000);
+						  })();
+						
+					}
+				}
+				catch(err) {
+					this.log("Login failed.", "Unknown error.", "Did the API version change?", err);
+				}
 
 				this.hcService.getCharacteristic(Characteristic.StatusFault).updateValue(Characteristic.StatusFault.GENERAL_FAULT);
 				return false;
@@ -442,5 +460,30 @@ PanasonicAC.prototype = {
 			}
 		}.bind(this));
 	}
-
 };
+
+async function getNewAppVersion(){
+	try {
+		const options = {
+		  method: "GET",
+		  url:
+			"https://itunes.apple.com/lookup?id=1348640525"
+		};
+	
+		var response = await got(options);
+		var respJSON = JSON.parse(response.body);
+
+		try{
+			var newAppVersion = respJSON.results[0].version;
+			this.log("New app version is: " + respJSON.results[0].version);
+
+		}catch(err){
+			this.log("Error retrieving new app version from app store. The app store API may have changed.")
+		}
+
+		return newAppVersion;
+		
+	  } catch (error) {
+		this.log("Error calling the Appstore API for new app version ", error);
+	  }
+}
