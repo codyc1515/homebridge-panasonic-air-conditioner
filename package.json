@@ -56,13 +56,11 @@
     "url": "git+https://github.com/codyc1515/homebridge-panasonic-air-conditioner.git"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "version": "3.4.0",
-  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
     "nodemon": "homebridge -I -D",
     "watch": "npm-watch"
   },
+  "version": "3.4.0",
   "watch": {
     "nodemon": "*.js"
   }
