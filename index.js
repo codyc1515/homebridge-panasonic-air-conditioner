@@ -27,6 +27,7 @@ function PanasonicAC(log, config) {
 	this.uToken = null;
 
 	this.deviceNumber = config["devicenumber"] || 1;
+	this.groupNumber = config["groupnumber"] || 1;
 	this.version = "1.7.0";
 
 	// Start running the refresh process (login and set timer)
@@ -156,7 +157,7 @@ PanasonicAC.prototype = {
 
 						try {
 							this.log("Login complete");
-							this.device = body['groupList'][this.deviceNumber-1]['deviceIdList'][this.deviceNumber-1]['deviceGuid'];
+							this.device = body['groupList'][this.groupnumber-1]['deviceIdList'][this.deviceNumber-1]['deviceGuid'];
 							this.hcService.getCharacteristic(Characteristic.StatusFault).updateValue(Characteristic.StatusFault.NO_FAULT);
 						}
 						catch(err) {
