@@ -1,27 +1,27 @@
 {
-  "_from": "homebridge-panasonic-air-conditioner@latest",
-  "_id": "homebridge-panasonic-air-conditioner@3.3.4",
+  "_from": "homebridge-panasonic-air-conditioner@3.4.1",
+  "_id": "homebridge-panasonic-air-conditioner@3.4.1",
   "_inBundle": false,
-  "_integrity": "sha512-XrNWwJKSgQyHpHqeYcE9rVtqcyCRlQwgtKHA0cZN6ya6heeNWpDhac21fQMAhFchXSvWJHF0o18xsDfJMlr3Vw==",
+  "_integrity": "sha512-dqXVM+FFeMPXnmfQIIpeCPsfzWsU40BLgAV9wByhpt6aQQAzD0b+sKcpjXQpctGDeRsSOpjgxibZYYoB6iEobQ==",
   "_location": "/homebridge-panasonic-air-conditioner",
   "_phantomChildren": {},
   "_requested": {
-    "type": "tag",
+    "type": "version",
     "registry": true,
-    "raw": "homebridge-panasonic-air-conditioner@latest",
+    "raw": "homebridge-panasonic-air-conditioner@3.4.1",
     "name": "homebridge-panasonic-air-conditioner",
     "escapedName": "homebridge-panasonic-air-conditioner",
-    "rawSpec": "latest",
+    "rawSpec": "3.4.1",
     "saveSpec": null,
-    "fetchSpec": "latest"
+    "fetchSpec": "3.4.1"
   },
   "_requiredBy": [
     "#USER"
   ],
-  "_resolved": "https://registry.npmjs.org/homebridge-panasonic-air-conditioner/-/homebridge-panasonic-air-conditioner-3.3.4.tgz",
-  "_shasum": "f15cf929e7f632977ee15237922f51b60ab5d831",
-  "_spec": "homebridge-panasonic-air-conditioner@latest",
-  "_where": "/usr/local/lib",
+  "_resolved": "https://registry.npmjs.org/homebridge-panasonic-air-conditioner/-/homebridge-panasonic-air-conditioner-3.4.1.tgz",
+  "_shasum": "a9432d094bc8379b157445d7ad1bdc5b1823ab4c",
+  "_spec": "homebridge-panasonic-air-conditioner@3.4.1",
+  "_where": "/usr/local",
   "author": {
     "name": "codyc1515"
   },
@@ -57,5 +57,5 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "version": "3.4.0"
+  "version": "4.0.0"
 }

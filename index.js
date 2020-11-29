@@ -24,14 +24,21 @@ function PanasonicAC(log, config) {
 
 	this.email = config["email"];
 	this.password = config["password"];
-	this.uToken = null;
-
 	this.deviceNumber = config["devicenumber"] || 1;
-	this.version = "1.7.0";
 
-	// Start running the refresh process (login and set timer)
-	try {this._login(true);}
-	catch(err) {this.log("Login failure", err);}
+	this.uToken = null;
+	this.version = "1.7.0";
+	this.temperature = 0.0;
+
+	// Set a timer to refresh the data every 10 minutes
+	setInterval(function() {
+		this._refresh();
+	}.bind(this), 600000);
+
+	// Set a timer to refresh the login token every 3 hours
+	setInterval(function() {
+		this._login();
+	}.bind(this), 10800000);
 }
 
 PanasonicAC.prototype = {
@@ -42,16 +49,17 @@ PanasonicAC.prototype = {
 	},
 
 	getServices: function() {
-		// Heater Cooler Service
-		this.hcService = new Service.HeaterCooler(this.name);
+		// Thermostat service
+		this.Thermostat = new Service.Thermostat(this.name);
 
-		// Active
-		this.hcService
-			.getCharacteristic(Characteristic.Active)
-			.on('set', this._setValue.bind(this, "Active"));
+		// Thermostat - Current Heating Cooling State
+		// Thermostat - Target Heating Cooling State
+		this.Thermostat
+			.getCharacteristic(Characteristic.TargetHeatingCoolingState)
+			.on('set', this._setValue.bind(this, "TargetHeatingCoolingState"));
 
-		// Current Temperature
-		this.hcService
+		// Thermostat - Current Temperature
+		this.Thermostat
 			.getCharacteristic(Characteristic.CurrentTemperature)
 			.setProps({
 				minValue: 0,
@@ -59,35 +67,28 @@ PanasonicAC.prototype = {
 				minStep: 0.01
 			});
 
-		// Current Heater Cooler State
-
-		// Target Heater Cooler State
-		this.hcService
-			.getCharacteristic(Characteristic.TargetHeaterCoolerState)
-			.on('set', this._setValue.bind(this, "TargetHeaterCoolerState"));
-
-		// Cooling Threshold Temperature
-		this.hcService
-			.getCharacteristic(Characteristic.CoolingThresholdTemperature)
+		// Thermostat - Target Temperature
+		this.Thermostat
+			.getCharacteristic(Characteristic.TargetTemperature)
 			.setProps({
 				minValue: 16,
 				maxValue: 30,
 				minStep: 0.5
 			})
-			.on('set', this._setValue.bind(this, "ThresholdTemperature"));
+			.on('set', this._setValue.bind(this, "TargetTemperature"));
 
-		// Heating Threshold Temperature
-		this.hcService
-			.getCharacteristic(Characteristic.HeatingThresholdTemperature)
-			.setProps({
-				minValue: 16,
-				maxValue: 30,
-				minStep: 0.5
-			})
-			.on('set', this._setValue.bind(this, "ThresholdTemperature"));
+		// Thermostat - Temperature Display Units
 
-		// Rotation Speed
-		this.hcService
+		// FanV2 service
+		this.Fan = new Service.Fanv2(this.name);
+
+		// Fan - Active
+		this.Fan
+			.getCharacteristic(Characteristic.Active)
+			.on('set', this._setValue.bind(this, "Active"));
+
+		// Fan - Rotation Speed
+		this.Fan
 			.getCharacteristic(Characteristic.RotationSpeed)
 			.setProps({
 				minValue: 1,
@@ -96,31 +97,38 @@ PanasonicAC.prototype = {
 			})
 			.on('set', this._setValue.bind(this, "RotationSpeed"));
 
-		// Swing Mode
-		this.hcService
+		// Fan - Swing Mode
+		this.Fan
 			.getCharacteristic(Characteristic.SwingMode)
 			.on('set', this._setValue.bind(this, "SwingMode"));
 
-		// FakeGato Temperature
-		this.loggingService = new FakeGatoHistoryService("weather", Accessory);
+		// FakeGato History service
+		this.FakeGatoHistory = new FakeGatoHistoryService("weather", Accessory);
 
-		// Accessory Information Service
-		this.informationService = new Service.AccessoryInformation();
-		this.informationService
+		// Accessory Information service
+		this.AccessoryInformation = new Service.AccessoryInformation();
+		this.AccessoryInformation
 			.setCharacteristic(Characteristic.Name, this.name)
 			.setCharacteristic(Characteristic.Manufacturer, "Panasonic")
 			.setCharacteristic(Characteristic.Model, "CZ-TACG1")
 			.setCharacteristic(Characteristic.FirmwareRevision, this.version)
 			.setCharacteristic(Characteristic.SerialNumber, this.device);
 
+		// Login for the first time and refresh
+		setTimeout(function() {
+			this._login();
+		}.bind(this), 2500);
+
+		// Return the Accessory
 		return [
-			this.hcService,
-			this.loggingService,
-			this.informationService
+			this.AccessoryInformation,
+			this.Thermostat,
+			this.Fan,
+			this.FakeGatoHistory
 		];
 	},
 
-	_login: function(isInitial) {
+	_login: function() {
 		if(this.debug) {this.log("Login start");}
 
 		// Call the API
@@ -155,29 +163,22 @@ PanasonicAC.prototype = {
 						var body = JSON.parse(body);
 
 						try {
-							this.log("Login complete");
+							if(this.debug) {this.log("Login complete");}
+
 							this.device = body['groupList'][this.deviceNumber-1]['deviceIdList'][this.deviceNumber-1]['deviceGuid'];
-							this.hcService.getCharacteristic(Characteristic.StatusFault).updateValue(Characteristic.StatusFault.NO_FAULT);
+							this.Thermostat.getCharacteristic(Characteristic.StatusFault).updateValue(Characteristic.StatusFault.NO_FAULT);
+
+							// Send a refresh off
+							this._refresh();
 						}
 						catch(err) {
 							this.log("Could not find device by number.", "Check your device number and try again.", err, "Error #", body['code'], body['message']);
-							this.hcService.getCharacteristic(Characteristic.StatusFault).updateValue(Characteristic.StatusFault.GENERAL_FAULT);
-						}
-
-						if(isInitial) {
-							// Refresh the data on initial load
-							this._refresh();
-
-						    // Refresh the data every 10 minutes
-						    setInterval(function() {this._refresh();}.bind(this), 600000);
-
-							// Refresh the login token every 3 hours
-							setInterval(function() {this._login();}.bind(this), 10800000);
+							this.Thermostat.getCharacteristic(Characteristic.StatusFault).updateValue(Characteristic.StatusFault.GENERAL_FAULT);
 						}
 					}
 					else {
 						this.log("Could not find any devices.", "Error #", body['code'], body['message']);
-						this.hcService.getCharacteristic(Characteristic.StatusFault).updateValue(Characteristic.StatusFault.GENERAL_FAULT);
+						this.Thermostat.getCharacteristic(Characteristic.StatusFault).updateValue(Characteristic.StatusFault.GENERAL_FAULT);
 					}
 				}.bind(this));
 			}
@@ -185,7 +186,7 @@ PanasonicAC.prototype = {
 				try {this.log("Login failed.", "Error #", body['code'], body['message']);}
 				catch(err) {this.log("Login failed.", "Unknown error.", "Did the API version change?", err);}
 
-				this.hcService.getCharacteristic(Characteristic.StatusFault).updateValue(Characteristic.StatusFault.GENERAL_FAULT);
+				this.Thermostat.getCharacteristic(Characteristic.StatusFault).updateValue(Characteristic.StatusFault.GENERAL_FAULT);
 				return false;
 			}
 		}.bind(this));
@@ -193,11 +194,10 @@ PanasonicAC.prototype = {
 
 	_getValue: function(CharacteristicName, callback) {
 		if(this.debug) {this.log("GET", CharacteristicName);}
-
 		callback(null);
 	},
 
-	_refresh: function() {
+	_refresh: function(isInitial) {
 		if(this.debug) {this.log("Refresh start");}
 
 		request.get({
@@ -213,123 +213,118 @@ PanasonicAC.prototype = {
 			if (!err && response.statusCode == 200) {
 				var json = JSON.parse(body);
 
-				// Active
-				switch (json['parameters']['operate']) {
-					case 1:		this.hcService.getCharacteristic(Characteristic.Active).updateValue(Characteristic.Active.ACTIVE);		break;
-					case 0:		this.hcService.getCharacteristic(Characteristic.Active).updateValue(Characteristic.Active.INACTIVE);	break;
-					default:	this.log("Unknown Active state", json['parameters']['operate']);										break;
-				}
+				if(this.debug) {this.log(json);}
 
-				// Current Temperature
-				var temperature = 0;
-				if (json['parameters']['insideTemperature'] < 99) {temperature = json['parameters']['insideTemperature'];}
-				else if (json['parameters']['outTemperature'] < 99) {temperature = json['parameters']['outTemperature'];}
-				else if (json['parameters']['insideTemperature'] == 126 || json['parameters']['outTemperature'] == 126) {
-					if(this.debug) {this.log("Temperature state is not available", json['parameters']['insideTemperature'], json['parameters']['outTemperature']);}
-				}
-				else {this.log("Unknown Temperature state", json['parameters']['insideTemperature'], json['parameters']['outTemperature']);}
-
-				this.hcService.getCharacteristic(Characteristic.CurrentTemperature).updateValue(temperature);
-
-				// FakeGato Temperature
-				// Only send the temperature to FakeGato when the Heat Pump is switched on, otherwise it will just incorrectly record zero for every period
+				// Check the device is operating
 				if(json['parameters']['operate'] == 1) {
-					this.loggingService.addEntry({time: moment().unix(), temp: temperature});
+					// Temperature of 126 from the API = null
+					if (json['parameters']['insideTemperature'] < 99) {this.temperature = json['parameters']['insideTemperature'];}
+					else if (json['parameters']['outTemperature'] < 99) {this.temperature = json['parameters']['outTemperature'];}
+					else {this.log("Temperature state is not available", json['parameters']['insideTemperature'], json['parameters']['outTemperature']);}
+
+					// Only update the temperature when the Heat Pump is switched on, otherwise it will just incorrectly report zero to HomeKit and FakeGato
+					this.Thermostat.getCharacteristic(Characteristic.CurrentTemperature).updateValue(this.temperature);
+					this.FakeGatoHistory.addEntry({time: moment().unix(), temp: this.temperature});
+
+					// Turn the Fan on
+					this.Fan.getCharacteristic(Characteristic.Active).updateValue(Characteristic.Active.ACTIVE);
+
+					// Turn the Thermostat on
+					// Thermostat - Current Heating Cooling State
+					// Thermostat - Target Heating Cooling State
+					switch (json['parameters']['operationMode']) {
+						// Auto
+						case 0:
+							if (this.temperature < json['parameters']['temperatureSet']) {this.Thermostat.getCharacteristic(Characteristic.CurrentHeatingCoolingState).updateValue(Characteristic.CurrentHeatingCoolingState.HEAT);}
+							else if (this.temperature > json['parameters']['temperatureSet']) {this.Thermostat.getCharacteristic(Characteristic.CurrentHeatingCoolingState).updateValue(Characteristic.CurrentHeatingCoolingState.COOL);}
+							else {this.Thermostat.getCharacteristic(Characteristic.CurrentHeatingCoolingState).updateValue(Characteristic.CurrentHeatingCoolingState.OFF);}
+
+							this.Thermostat.getCharacteristic(Characteristic.TargetHeatingCoolingState).updateValue(Characteristic.TargetHeatingCoolingState.AUTO);
+						break;
+
+						// Heat
+						case 3:
+							if (this.temperature < json['parameters']['temperatureSet']) {this.Thermostat.getCharacteristic(Characteristic.CurrentHeatingCoolingState).updateValue(Characteristic.CurrentHeatingCoolingState.HEAT);}
+							else {this.Thermostat.getCharacteristic(Characteristic.CurrentHeatingCoolingState).updateValue(Characteristic.CurrentHeatingCoolingState.OFF);}
+
+							this.Thermostat.getCharacteristic(Characteristic.TargetHeatingCoolingState).updateValue(Characteristic.TargetHeatingCoolingState.HEAT);
+						break;
+
+						// Cool
+						case 2:
+							if (this.temperature > json['parameters']['temperatureSet']) {this.Thermostat.getCharacteristic(Characteristic.CurrentHeatingCoolingState).updateValue(Characteristic.CurrentHeatingCoolingState.COOL);}
+							else {this.Thermostat.getCharacteristic(Characteristic.CurrentHeatingCoolingState).updateValue(Characteristic.CurrentHeatingCoolingState.OFF);}
+
+							this.Thermostat.getCharacteristic(Characteristic.TargetHeatingCoolingState).updateValue(Characteristic.TargetHeatingCoolingState.COOL);
+						break;
+
+						// Dry
+						case 1:
+							this.Thermostat.getCharacteristic(Characteristic.CurrentHeatingCoolingState).updateValue(Characteristic.CurrentHeatingCoolingState.COOL);
+							this.Thermostat.getCharacteristic(Characteristic.TargetHeatingCoolingState).updateValue(Characteristic.TargetHeatingCoolingState.COOL);
+						break;
+
+						// Fan
+						case 4:
+							this.Thermostat.getCharacteristic(Characteristic.CurrentHeatingCoolingState).updateValue(Characteristic.CurrentHeatingCoolingState.COOL);
+							this.Thermostat.getCharacteristic(Characteristic.TargetHeatingCoolingState).updateValue(Characteristic.TargetHeatingCoolingState.COOL);
+						break;
+
+						default:
+							this.log("Unknown TargetHeatingCoolingState state", json['parameters']['operationMode']);
+						break;
+					}
 				}
 
-				// Current Heater Cooler State
-				// If Auto, Heat or Cool then calculate the Current Heater Cooler State, otherwise if Dry / Fan set it to Cooling
-				if(json['parameters']['operationMode'] == 0 || json['parameters']['operationMode'] == 2 || json['parameters']['operationMode'] == 3) {
-					if (temperature < json['parameters']['temperatureSet']) {this.hcService.getCharacteristic(Characteristic.CurrentHeaterCoolerState).updateValue(Characteristic.CurrentHeaterCoolerState.HEATING);}
-					else if (temperature > json['parameters']['temperatureSet']) {this.hcService.getCharacteristic(Characteristic.CurrentHeaterCoolerState).updateValue(Characteristic.CurrentHeaterCoolerState.COOLING);}
-					else {this.hcService.getCharacteristic(Characteristic.CurrentHeaterCoolerState).updateValue(Characteristic.CurrentHeaterCoolerState.IDLE);}
-				}
-				else {this.hcService.getCharacteristic(Characteristic.CurrentHeaterCoolerState).updateValue(Characteristic.CurrentHeaterCoolerState.COOLING);}
+				else {
+					// Turn the Thermostat off
+					this.Thermostat.getCharacteristic(Characteristic.CurrentHeatingCoolingState).updateValue(Characteristic.CurrentHeatingCoolingState.OFF);
+					this.Thermostat.getCharacteristic(Characteristic.TargetHeatingCoolingState).updateValue(Characteristic.TargetHeatingCoolingState.OFF);
 
-				// Target Heater Cooler State
-				switch (json['parameters']['operationMode']) {
-					// Auto
-					case 0:
-						if (temperature < json['parameters']['temperatureSet']) {this.hcService.getCharacteristic(Characteristic.CurrentHeaterCoolerState).updateValue(Characteristic.CurrentHeaterCoolerState.HEATING);}
-						else if (temperature > json['parameters']['temperatureSet']) {this.hcService.getCharacteristic(Characteristic.CurrentHeaterCoolerState).updateValue(Characteristic.CurrentHeaterCoolerState.COOLING);}
-						else {this.hcService.getCharacteristic(Characteristic.CurrentHeaterCoolerState).updateValue(Characteristic.CurrentHeaterCoolerState.IDLE);}
-
-						this.hcService.getCharacteristic(Characteristic.TargetHeaterCoolerState).updateValue(Characteristic.TargetHeaterCoolerState.AUTO);
-					break;
-
-					// Heat
-					case 3:
-						if (temperature < json['parameters']['temperatureSet']) {this.hcService.getCharacteristic(Characteristic.CurrentHeaterCoolerState).updateValue(Characteristic.CurrentHeaterCoolerState.HEATING);}
-						else {this.hcService.getCharacteristic(Characteristic.CurrentHeaterCoolerState).updateValue(Characteristic.CurrentHeaterCoolerState.IDLE);}
-
-						this.hcService.getCharacteristic(Characteristic.TargetHeaterCoolerState).updateValue(Characteristic.TargetHeaterCoolerState.HEAT);
-					break;
-
-					// Cool
-					case 2:
-						if (temperature > json['parameters']['temperatureSet']) {this.hcService.getCharacteristic(Characteristic.CurrentHeaterCoolerState).updateValue(Characteristic.CurrentHeaterCoolerState.COOLING);}
-						else {this.hcService.getCharacteristic(Characteristic.CurrentHeaterCoolerState).updateValue(Characteristic.CurrentHeaterCoolerState.IDLE);}
-
-						this.hcService.getCharacteristic(Characteristic.TargetHeaterCoolerState).updateValue(Characteristic.TargetHeaterCoolerState.COOL);
-					break;
-
-					// Dry
-					case 1:
-						this.hcService.getCharacteristic(Characteristic.CurrentHeaterCoolerState).updateValue(Characteristic.CurrentHeaterCoolerState.COOLING);
-						this.hcService.getCharacteristic(Characteristic.TargetHeaterCoolerState).updateValue(Characteristic.TargetHeaterCoolerState.COOL);
-					break;
-
-					// Fan
-					case 4:
-						this.hcService.getCharacteristic(Characteristic.CurrentHeaterCoolerState).updateValue(Characteristic.CurrentHeaterCoolerState.COOLING);
-						this.hcService.getCharacteristic(Characteristic.TargetHeaterCoolerState).updateValue(Characteristic.TargetHeaterCoolerState.COOL);
-					break;
-
-					default:
-						this.log("Unknown TargetHeaterCoolerState state", json['parameters']['operationMode']);
-					break;
+					// Turn the Fan off
+					this.Fan.getCharacteristic(Characteristic.Active).updateValue(Characteristic.Active.INACTIVE);
 				}
 
-				// Rotation Speed
+				// Thermostat - Target Temperature
+				this.Thermostat.getCharacteristic(Characteristic.TargetTemperature).updateValue(json['parameters']['temperatureSet']);
+
+				// Thermostat - Temperature Display Units
+				this.Thermostat.getCharacteristic(Characteristic.TemperatureDisplayUnits).updateValue(json['parameters']['temperatureUnit']);
+
+				// Fan - Rotation Speed
 				var rotationSpeed;
 				if(json['parameters']['fanSpeed'] == 0) {rotationSpeed = 6;}
 				else {rotationSpeed = json['parameters']['fanSpeed'];}
 
-				this.hcService.getCharacteristic(Characteristic.RotationSpeed).updateValue(rotationSpeed);
+				this.Fan.getCharacteristic(Characteristic.RotationSpeed).updateValue(rotationSpeed);
 
-				// Swing Mode
-				if(json['parameters']['airSwingLR'] == 2 && json['parameters']['airSwingUD'] == 0) {this.hcService.getCharacteristic(Characteristic.SwingMode).updateValue(Characteristic.SwingMode.SWING_ENABLED);}
-				else {this.hcService.getCharacteristic(Characteristic.SwingMode).updateValue(Characteristic.SwingMode.SWING_DISABLED);}
-
-				// Threshold Temperature
-				this.hcService.getCharacteristic(Characteristic.HeatingThresholdTemperature).updateValue(json['parameters']['temperatureSet']);
-				this.hcService.getCharacteristic(Characteristic.CoolingThresholdTemperature).updateValue(json['parameters']['temperatureSet']);
+				// Fan - Swing Mode
+				if(json['parameters']['airSwingLR'] == 2 && json['parameters']['airSwingUD'] == 0) {this.Fan.getCharacteristic(Characteristic.SwingMode).updateValue(Characteristic.SwingMode.SWING_ENABLED);}
+				else {this.Fan.getCharacteristic(Characteristic.SwingMode).updateValue(Characteristic.SwingMode.SWING_DISABLED);}
 
 				// Status Fault
 				if(json['parameters']['online'] && !json['parameters']['errorStatusFlg']) {
 					if(this.debug) {this.log("Refresh complete");}
-					this.hcService.getCharacteristic(Characteristic.StatusFault).updateValue(Characteristic.StatusFault.NO_FAULT);
+					this.Thermostat.getCharacteristic(Characteristic.StatusFault).updateValue(Characteristic.StatusFault.NO_FAULT);
 				}
 				else {
 					this.log("Refresh failed.", "Device may be offline or in error state", "Online", json['parameters']['online'], "Error Status Flag", json['parameters']['errorStatusFlg'], "HTTP response", response.statusCode, "Error #", body['code'], body['message']);
-					this.hcService.getCharacteristic(Characteristic.StatusFault).updateValue(Characteristic.StatusFault.GENERAL_FAULT);
+					this.Thermostat.getCharacteristic(Characteristic.StatusFault).updateValue(Characteristic.StatusFault.GENERAL_FAULT);
 				}
 			}
 			else if(response.statusCode == 403) {
 				this.log("Refresh failed.", "Login error.", "Did you enter the correct username and password? Please check the details & restart Homebridge.", err);
-				this.hcService.getCharacteristic(Characteristic.StatusFault).updateValue(Characteristic.StatusFault.GENERAL_FAULT);
+				this.Thermostat.getCharacteristic(Characteristic.StatusFault).updateValue(Characteristic.StatusFault.GENERAL_FAULT);
 			}
 			else if(response.statusCode == 401) {
-				this.log("Refresh failed.", "Token error.", "The token may have expired - lets log back in again.", err);
-				this.hcService.getCharacteristic(Characteristic.StatusFault).updateValue(Characteristic.StatusFault.GENERAL_FAULT);
-
-				this._login();
+				this.log("Refresh failed.", "Token error.", "The token may have expired.", err);
+				this.Thermostat.getCharacteristic(Characteristic.StatusFault).updateValue(Characteristic.StatusFault.GENERAL_FAULT);
 			}
 			else {
 				try {this.log("Refresh failed.", "HTTP response", response.statusCode, "Error #", body['code'], body['message']);}
 				catch(err) {this.log("Refresh failed.", "Unknown error.", "Did the API version change?", err);}
 
-				this.hcService.getCharacteristic(Characteristic.StatusFault).updateValue(Characteristic.StatusFault.GENERAL_FAULT);
+				this.Thermostat.getCharacteristic(Characteristic.StatusFault).updateValue(Characteristic.StatusFault.GENERAL_FAULT);
 			}
 		}.bind(this));
 	},
@@ -340,35 +335,100 @@ PanasonicAC.prototype = {
 		var parameters;
 
 		switch (CharacteristicName) {
-			// Active
+			// Thermostat - Target Heating Cooling State
+			case "TargetHeatingCoolingState":
+				switch (value) {
+
+					// @TODO - need to update the fan speed when turning on the thermostat
+
+					case Characteristic.TargetHeatingCoolingState.OFF:
+						parameters = {
+							"operate": 0
+						};
+						this.Fan.getCharacteristic(Characteristic.Active).updateValue(Characteristic.Active.INACTIVE);
+					break;
+
+					case Characteristic.TargetHeatingCoolingState.HEAT:
+						parameters = {
+							"operate": 1,
+							"operationMode": 3
+						};
+						this.Fan.getCharacteristic(Characteristic.Active).updateValue(Characteristic.Active.ACTIVE);
+					break;
+
+					case Characteristic.TargetHeatingCoolingState.COOL:
+						parameters = {
+							"operate": 1,
+							"operationMode": 2
+						};
+						this.Fan.getCharacteristic(Characteristic.Active).updateValue(Characteristic.Active.ACTIVE);
+					break;
+
+					case Characteristic.TargetHeatingCoolingState.AUTO:
+						parameters = {
+							"operate": 1,
+							"operationMode": 0
+						};
+						this.Fan.getCharacteristic(Characteristic.Active).updateValue(Characteristic.Active.ACTIVE);
+					break;
+
+					default: this.log("Unknown TargetHeatingCoolingState", value); break;
+				}
+			break;
+
+			// Thermostat - Target Temperature
+			case "TargetTemperature":
+				parameters = {
+					"temperatureSet": value
+				};
+			break;
+
+			// Thermostat - Temperature Display Units
+			// @TODO - we cannot easily set this here - needs to be set on a different webpage in the API
+
+			// Fan - Active
 			case "Active":
 				switch (value) {
-					case Characteristic.Active.ACTIVE:		parameters = { "operate": 1 };	break;
-					case Characteristic.Active.INACTIVE:	parameters = { "operate": 0 };	break;
+
+					// @TODO - need to update the thermostat mode when turning on the fan (instead of default to cool)
+
+					case Characteristic.Active.ACTIVE:
+						parameters = {
+							"operate": 1
+						};
+						this.Thermostat.getCharacteristic(Characteristic.CurrentHeatingCoolingState).updateValue(Characteristic.CurrentHeatingCoolingState.COOL);
+						this.Thermostat.getCharacteristic(Characteristic.TargetHeatingCoolingState).updateValue(Characteristic.TargetHeatingCoolingState.COOL);
+					break;
+
+					case Characteristic.Active.INACTIVE:
+						parameters = {
+							"operate": 0
+						};
+						this.Thermostat.getCharacteristic(Characteristic.CurrentHeatingCoolingState).updateValue(Characteristic.CurrentHeatingCoolingState.OFF);
+						this.Thermostat.getCharacteristic(Characteristic.TargetHeatingCoolingState).updateValue(Characteristic.TargetHeatingCoolingState.OFF);
+					break;
+
 				}
 			break;
 
-			// Target Heater Cooler State
-			case "TargetHeaterCoolerState":
-				switch (value) {
-					case Characteristic.TargetHeaterCoolerState.AUTO:	parameters = { "operationMode": 0 };	break;
-					case Characteristic.TargetHeaterCoolerState.HEAT:	parameters = { "operationMode": 3 };	break;
-					case Characteristic.TargetHeaterCoolerState.COOL:	parameters = { "operationMode": 2 };	break;
-				}
-
-				// Update the Current Heater Cooler State
-				setTimeout(function() {this._refresh();}.bind(this), 2500);
-			break;
-
-			// Rotation Speed
+			// Fan - Rotation Speed
 			case "RotationSpeed":
 				switch (value) {
-					case 6:		parameters = { "fanSpeed": 0 };			break;
-					default:	parameters = { "fanSpeed": value };		break;
+					case 6:
+						parameters = {
+							"fanSpeed": 0
+						};
+					break;
+
+					default:
+						parameters = {
+							"fanSpeed": value
+						};
+					break;
 				}
 			break;
 
-			// Swing Mode
+			// Fan - Swing Mode
 			case "SwingMode":
 				switch (value) {
 					case Characteristic.SwingMode.SWING_ENABLED:
@@ -387,12 +447,6 @@ PanasonicAC.prototype = {
 						};
 					break;
 				}
-			break;
-
-			// Cooling Threshold Temperature
-			// Heating Threshold Temperature
-			case "ThresholdTemperature":
-				parameters = { "temperatureSet": value };
 			break;
 		}
 
@@ -414,15 +468,10 @@ PanasonicAC.prototype = {
 			if (!err && response.statusCode == 200) {
 				if (body.result !== 0) {
 					this.log("SET failed.", "Error #", body['code'], body['message']);
-					this.hcService.getCharacteristic(Characteristic.StatusFault).updateValue(Characteristic.StatusFault.GENERAL_FAULT);
+					this.Thermostat.getCharacteristic(Characteristic.StatusFault).updateValue(Characteristic.StatusFault.GENERAL_FAULT);
 
-					if(response.statusCode == 403) {
-						this.log("Login error.", "Did you enter the correct username and password? Please check the details & restart Homebridge.", err);
-					}
-					else if(response.statusCode == 401) {
-						this.log("Token error.", "The token may have expired - lets log back in again.", err);
-						this._login();
-					}
+					if(response.statusCode == 403) {this.log("Login error.", "Did you enter the correct username and password? Please check the details & restart Homebridge.", err);}
+					else if(response.statusCode == 401) {this.log("Token error.", "The token may have expired.", err);}
 				}
 				else {
 					if(this.debug) {this.log("SET", CharacteristicName, value, "complete");}
@@ -431,14 +480,14 @@ PanasonicAC.prototype = {
 					callback(null, value);
 
 					// Clear any faults
-					this.hcService.getCharacteristic(Characteristic.StatusFault).updateValue(Characteristic.StatusFault.NO_FAULT);
+					this.Thermostat.getCharacteristic(Characteristic.StatusFault).updateValue(Characteristic.StatusFault.NO_FAULT);
 				}
 			}
 			else {
 				try {this.log("SET failed.", "HTTP response", response.statusCode, "Error #", body['code'], body['message']);}
 				catch(err) {this.log("SET failed.", "Unknown error.", "Did the API version change?", err);}
 
-				this.hcService.getCharacteristic(Characteristic.StatusFault).updateValue(Characteristic.StatusFault.GENERAL_FAULT);
+				this.Thermostat.getCharacteristic(Characteristic.StatusFault).updateValue(Characteristic.StatusFault.GENERAL_FAULT);
 			}
 		}.bind(this));
 	}
