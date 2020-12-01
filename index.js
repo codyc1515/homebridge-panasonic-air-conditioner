@@ -25,6 +25,7 @@ function PanasonicAC(log, config) {
 	this.email = config["email"];
 	this.password = config["password"];
 	this.deviceNumber = config["devicenumber"] || 1;
+	this.groupNumber = config["groupnumber"] || 1;
 
 	this.uToken = null;
 	this.version = "1.7.0";
@@ -165,7 +166,7 @@ PanasonicAC.prototype = {
 						try {
 							if(this.debug) {this.log("Login complete");}
 
-							this.device = body['groupList'][this.deviceNumber-1]['deviceIdList'][this.deviceNumber-1]['deviceGuid'];
+							this.device = body['groupList'][this.groupNumber-1]['deviceIdList'][this.deviceNumber-1]['deviceGuid'];
 							this.Thermostat.getCharacteristic(Characteristic.StatusFault).updateValue(Characteristic.StatusFault.NO_FAULT);
 
 							// Send a refresh off
