@@ -30,6 +30,9 @@ function PanasonicAC(log, config) {
 	this.version = "1.7.0";
 	this.temperature = 0.0;
 
+	// Login for the first time and refresh
+	this._login();
+
 	// Set a timer to refresh the data every 10 minutes
 	setInterval(function() {
 		this._refresh();
@@ -114,11 +117,6 @@ PanasonicAC.prototype = {
 			.setCharacteristic(Characteristic.FirmwareRevision, this.version)
 			.setCharacteristic(Characteristic.SerialNumber, this.device);
 
-		// Login for the first time and refresh
-		setTimeout(function() {
-			this._login();
-		}.bind(this), 2500);
-
 		// Return the Accessory
 		return [
 			this.AccessoryInformation,
@@ -166,28 +164,18 @@ PanasonicAC.prototype = {
 							if(this.debug) {this.log("Login complete");}
 
 							this.device = body['groupList'][this.deviceNumber-1]['deviceIdList'][this.deviceNumber-1]['deviceGuid'];
-							this.Thermostat.getCharacteristic(Characteristic.StatusFault).updateValue(Characteristic.StatusFault.NO_FAULT);
 
 							// Send a refresh off
 							this._refresh();
 						}
-						catch(err) {
-							this.log("Could not find device by number.", "Check your device number and try again.", err, "Error #", body['code'], body['message']);
-							this.Thermostat.getCharacteristic(Characteristic.StatusFault).updateValue(Characteristic.StatusFault.GENERAL_FAULT);
-						}
+						catch(err) {this.log("Could not find device by number.", "Check your device number and try again.", err, "Error #", body['code'], body['message']);}
 					}
-					else {
-						this.log("Could not find any devices.", "Error #", body['code'], body['message']);
-						this.Thermostat.getCharacteristic(Characteristic.StatusFault).updateValue(Characteristic.StatusFault.GENERAL_FAULT);
-					}
+					else {this.log("Could not find any devices.", "Error #", body['code'], body['message']);}
 				}.bind(this));
 			}
 			else {
 				try {this.log("Login failed.", "Error #", body['code'], body['message']);}
 				catch(err) {this.log("Login failed.", "Unknown error.", "Did the API version change?", err);}
-
-				this.Thermostat.getCharacteristic(Characteristic.StatusFault).updateValue(Characteristic.StatusFault.GENERAL_FAULT);
-				return false;
 			}
 		}.bind(this));
 	},
@@ -197,7 +185,7 @@ PanasonicAC.prototype = {
 		callback(null);
 	},
 
-	_refresh: function(isInitial) {
+	_refresh: function() {
 		if(this.debug) {this.log("Refresh start");}
 
 		request.get({
@@ -218,8 +206,8 @@ PanasonicAC.prototype = {
 				// Check the device is operating
 				if(json['parameters']['operate'] == 1) {
 					// Temperature of 126 from the API = null
-					if (json['parameters']['insideTemperature'] < 99) {this.temperature = json['parameters']['insideTemperature'];}
-					else if (json['parameters']['outTemperature'] < 99) {this.temperature = json['parameters']['outTemperature'];}
+					if (json['parameters']['insideTemperature'] != 126) {this.temperature = json['parameters']['insideTemperature'];}
+					else if (json['parameters']['outTemperature'] != 126) {this.temperature = json['parameters']['outTemperature'];}
 					else {this.log("Temperature state is not available", json['parameters']['insideTemperature'], json['parameters']['outTemperature']);}
 
 					// Only update the temperature when the Heat Pump is switched on, otherwise it will just incorrectly report zero to HomeKit and FakeGato
@@ -476,9 +464,6 @@ PanasonicAC.prototype = {
 				else {
 					if(this.debug) {this.log("SET", CharacteristicName, value, "complete");}
 
-					// Callback to HomeKit now that it's done
-					callback(null, value);
-
 					// Clear any faults
 					this.Thermostat.getCharacteristic(Characteristic.StatusFault).updateValue(Characteristic.StatusFault.NO_FAULT);
 				}
@@ -490,6 +475,9 @@ PanasonicAC.prototype = {
 				this.Thermostat.getCharacteristic(Characteristic.StatusFault).updateValue(Characteristic.StatusFault.GENERAL_FAULT);
 			}
 		}.bind(this));
+
+		// Callback to HomeKit now that it's done
+		callback(null, value);
 	}
 
 };
