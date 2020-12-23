@@ -28,7 +28,7 @@ function PanasonicAC(log, config) {
 	this.groupNumber = config["groupnumber"] || 1;
 
 	this.uToken = null;
-	this.version = "1.7.0";
+	this.version = "1.9.0";
 	this.temperature = 0.0;
 
 	// Login for the first time and refresh
@@ -164,7 +164,7 @@ PanasonicAC.prototype = {
 						try {
 							if(this.debug) {this.log("Login complete");}
 
-							this.device = body['groupList'][this.groupNumber-1]['deviceIdList'][this.deviceNumber-1]['deviceGuid'];
+							this.device = body['groupList'][this.groupNumber-1]['deviceList'][this.deviceNumber-1]['deviceGuid'];
 
 							// Send a refresh off
 							this._refresh();
