@@ -28,7 +28,7 @@ function PanasonicAC(log, config) {
 	this.groupNumber = config["groupnumber"] || 1;
 
 	this.uToken = null;
-	this.version = "1.7.0";
+	this.version = "1.9.0";
 	this.temperature = 0.0;
 
 	// Login for the first time and refresh
@@ -91,12 +91,17 @@ PanasonicAC.prototype = {
 			.getCharacteristic(Characteristic.Active)
 			.on('set', this._setValue.bind(this, "Active"));
 
+		// Fan - Target Fan State
+		this.Fan
+			.getCharacteristic(Characteristic.TargetFanState)
+			.on('set', this._setValue.bind(this, "TargetFanState"));
+
 		// Fan - Rotation Speed
 		this.Fan
 			.getCharacteristic(Characteristic.RotationSpeed)
 			.setProps({
 				minValue: 1,
-				maxValue: 6,
+				maxValue: 5,
 				minStep: 1
 			})
 			.on('set', this._setValue.bind(this, "RotationSpeed"));
@@ -164,7 +169,7 @@ PanasonicAC.prototype = {
 						try {
 							if(this.debug) {this.log("Login complete");}
 
-							this.device = body['groupList'][this.groupNumber-1]['deviceIdList'][this.deviceNumber-1]['deviceGuid'];
+							this.device = body['groupList'][this.groupNumber-1]['deviceList'][this.deviceNumber-1]['deviceGuid'];
 
 							// Send a refresh off
 							this._refresh();
@@ -280,12 +285,17 @@ PanasonicAC.prototype = {
 				// Thermostat - Temperature Display Units
 				this.Thermostat.getCharacteristic(Characteristic.TemperatureDisplayUnits).updateValue(json['parameters']['temperatureUnit']);
 
-				// Fan - Rotation Speed
-				var rotationSpeed;
-				if(json['parameters']['fanSpeed'] == 0) {rotationSpeed = 6;}
-				else {rotationSpeed = json['parameters']['fanSpeed'];}
+				// Fan - Target Fan State
+				if(json['parameters']['fanSpeed'] == 0) {
+					this.Fan.getCharacteristic(Characteristic.TargetFanState).updateValue(Characteristic.TargetFanState.AUTO);
 
-				this.Fan.getCharacteristic(Characteristic.RotationSpeed).updateValue(rotationSpeed);
+					// Set the Fan to an assumed maximum value
+					json['parameters']['fanSpeed'] = 5;
+				}
+				else {this.Fan.getCharacteristic(Characteristic.TargetFanState).updateValue(Characteristic.TargetFanState.MANUAL);}
+
+				// Fan - Rotation Speed
+				this.Fan.getCharacteristic(Characteristic.RotationSpeed).updateValue(json['parameters']['fanSpeed']);
 
 				// Fan - Swing Mode
 				if(json['parameters']['airSwingLR'] == 2 && json['parameters']['airSwingUD'] == 0) {this.Fan.getCharacteristic(Characteristic.SwingMode).updateValue(Characteristic.SwingMode.SWING_ENABLED);}
@@ -400,10 +410,10 @@ PanasonicAC.prototype = {
 				}
 			break;
 
-			// Fan - Rotation Speed
-			case "RotationSpeed":
+			// Fan - Target Fan State
+			case "TargetFanState":
 				switch (value) {
-					case 6:
+					case Characteristic.TargetFanState.AUTO:
 						parameters = {
 							"fanSpeed": 0
 						};
@@ -411,10 +421,17 @@ PanasonicAC.prototype = {
 
 					default:
 						parameters = {
-							"fanSpeed": value
+							"fanSpeed": 5
 						};
 					break;
 				}
+			break;
+
+			// Fan - Rotation Speed
+			case "RotationSpeed":
+				parameters = {
+					"fanSpeed": value
+				};
 			break;
 
 			// Fan - Swing Mode
