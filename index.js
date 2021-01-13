@@ -203,7 +203,10 @@ PanasonicAC.prototype = {
 				}.bind(this));
 			}
 			else {
-				try {this.log("Login failed.", "Error #", body['code'], body['message']);}
+				try {
+					if (err) this.log("Login request failed.", err);
+					else this.log("Login failed.", "Error #", body['code'], body['message']);
+				}
 				catch(err) {this.log("Login failed.", "Unknown error.", "Did the API version change?", err);}
 			}
 		}.bind(this));
