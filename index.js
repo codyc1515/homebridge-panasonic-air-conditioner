@@ -7,6 +7,10 @@ var Accessory,
 	Service,
 	FakeGatoHistoryService;
 
+const REFRESH_INTERVAL = 60000;
+const LOGIN_INTERVAL = 10800000;
+const LOGIN_RETRY_DELAY = 360000;
+
 module.exports = function(homebridge) {
 	Service = homebridge.hap.Service;
 	Characteristic = homebridge.hap.Characteristic;
@@ -46,6 +50,10 @@ function PanasonicAC(log, config) {
 }
 
 PanasonicAC.prototype = {
+
+	_refreshInterval: null,
+	_loginInterval: null,
+	_loginRetry: null,
 
 	identify: function(callback) {
 		this.log("identify");
@@ -156,6 +164,9 @@ PanasonicAC.prototype = {
 	},
 
 	_login: function() {
+		clearInterval(this._refreshInterval);
+		clearInterval(this._loginInterval);
+		clearTimeout(this._loginRetry);
 		if(this.debug) {this.log("Login start");}
 
 		// Call the API
@@ -200,11 +211,18 @@ PanasonicAC.prototype = {
 						catch(err) {this.log("Could not find device by number.", "Check your device number and try again.", err, "Error #", body['code'], body['message']);}
 					}
 					else {this.log("Could not find any devices.", "Error #", body['code'], body['message']);}
+
+					// Set a timer to refresh the data
+					this._refreshInterval = setInterval(this._refresh, REFRESH_INTERVAL);
+					// Set a timer to refresh the login token
+					this._loginInterval = setInterval(this._login.bind(this), LOGIN_INTERVAL);
+
 				}.bind(this));
 			}
 			else {
 				try {this.log("Login failed.", "Error #", body['code'], body['message']);}
 				catch(err) {this.log("Login failed.", "Unknown error.", "Did the API version change?", err);}
+				this._loginRetry = setTimeout(this._login.bind(this), LOGIN_RETRY_DELAY);
 			}
 		}.bind(this));
 	},
@@ -354,6 +372,7 @@ PanasonicAC.prototype = {
 			else if(response.statusCode == 401) {
 				this.log("Refresh failed.", "Token error.", "The token may have expired.", err);
 				this.Thermostat.getCharacteristic(Characteristic.StatusFault).updateValue(Characteristic.StatusFault.GENERAL_FAULT);
+				this._loginRetry = setTimeout(this._login.bind(this), LOGIN_RETRY_DELAY);
 			}
 			else {
 				try {this.log("Refresh failed.", "HTTP response", response.statusCode, "Error #", body['code'], body['message']);}
