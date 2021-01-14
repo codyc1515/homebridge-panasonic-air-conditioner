@@ -37,16 +37,6 @@ function PanasonicAC(log, config) {
 
 	// Login for the first time and refresh
 	this._login();
-
-	// Set a timer to refresh the data every 10 minutes
-	setInterval(function() {
-		this._refresh();
-	}.bind(this), 600000);
-
-	// Set a timer to refresh the login token every 3 hours
-	setInterval(function() {
-		this._login();
-	}.bind(this), 10800000);
 }
 
 PanasonicAC.prototype = {
