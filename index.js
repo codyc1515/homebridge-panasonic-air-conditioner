@@ -19,16 +19,16 @@ module.exports = function(homebridge) {
 
 function PanasonicAC(log, config) {
 	this.log = log;
-	this.debug = config["debug"] || false;
-	this.name = config["name"] || "Panasonic Air Conditioner";
+	this.debug = config.debug || false;
+	this.name = config.name || "Panasonic Air Conditioner";
 
-	this.email = config["email"];
-	this.password = config["password"];
-	this.deviceNumber = config["devicenumber"] || 1;
-	this.groupNumber = config["groupnumber"] || 1;
+	this.email = config.email;
+	this.password = config.password;
+	this.deviceNumber = config.devicenumber || 1;
+	this.groupNumber = config.groupnumber || 1;
 
 	this.uToken = null;
-	this.version = "1.9.0";
+	this.version = "1.10.0";
 	this.temperature = 0.0;
 
 	// Login for the first time and refresh
@@ -133,6 +133,9 @@ PanasonicAC.prototype = {
 				validValues: [2]
 			});
 
+		this.Dehumidifier
+			.setCharacteristic(Characteristic.TargetHumidifierDehumidifierState, 2);
+
 		// FakeGato History service
 		this.FakeGatoHistory = new FakeGatoHistoryService("weather", Accessory);
 
@@ -174,7 +177,7 @@ PanasonicAC.prototype = {
 			}
 		}, function(err, response, body) {
 			if (!err && response.statusCode == 200) {
-				this.uToken = body['uToken'];
+				this.uToken = body.uToken;
 				request.get({
 					url: "https://accsmart.panasonic.com/device/group/",
 					headers: {
@@ -187,7 +190,7 @@ PanasonicAC.prototype = {
 					json: ""
 				}, function(err, response, body) {
 					if (!err && response.statusCode == 200) {
-						var body = JSON.parse(body);
+						body = JSON.parse(body);
 
 						try {
 							if(this.debug) {this.log("Login complete");}
@@ -197,13 +200,13 @@ PanasonicAC.prototype = {
 							// Send a refresh off
 							this._refresh();
 						}
-						catch(err) {this.log("Could not find device by number.", "Check your device number and try again.", err, "Error #", body['code'], body['message']);}
+						catch(err) {this.log("Could not find device by number.", "Check your device number and try again.", err, "Error #", body.code, body.message);}
 					}
-					else {this.log("Could not find any devices.", "Error #", body['code'], body['message']);}
+					else {this.log("Could not find any devices.", "Error #", body.code, body.message);}
 				}.bind(this));
 			}
 			else {
-				try {this.log("Login failed.", "Error #", body['code'], body['message']);}
+				try {this.log("Login failed.", "Error #", body.code, body.message);}
 				catch(err) {this.log("Login failed.", "Unknown error.", "Did the API version change?", err);}
 			}
 		}.bind(this));
@@ -228,65 +231,65 @@ PanasonicAC.prototype = {
 			}
 		}, function(err, response, body) {
 			if (!err && response.statusCode == 200) {
-				var json = JSON.parse(body);
+				body = JSON.parse(body);
 
-				if(this.debug) {this.log(json);}
+				if(this.debug) {this.log(body);}
 
 				// Check the temperature
 				// Note - only update the temperature when the Heat Pump is reporting a valid temperature, otherwise it will just incorrectly report zero to HomeKit and FakeGato
 				if (
-					json['parameters']['insideTemperature'] != 126 ||
-					json['parameters']['outTemperature'] != 126
+					body.parameters.insideTemperature != 126 ||
+					body.parameters.outTemperature != 126
 				) {
 					// Temperature of 126 from the API = null
-					if (json['parameters']['insideTemperature'] != 126) {this.temperature = json['parameters']['insideTemperature'];}
-					else if (json['parameters']['outTemperature'] != 126) {this.temperature = json['parameters']['outTemperature'];}
+					if (body.parameters.insideTemperature != 126) {this.temperature = body.parameters.insideTemperature;}
+					else if (body.parameters.outTemperature != 126) {this.temperature = body.parameters.outTemperature;}
 
 					this.Thermostat.getCharacteristic(Characteristic.CurrentTemperature).updateValue(this.temperature);
 					this.FakeGatoHistory.addEntry({time: moment().unix(), temp: this.temperature});
 				}
-				else {this.log("Temperature state is not available", json['parameters']['insideTemperature'], json['parameters']['outTemperature']);}
+				else {this.log("Temperature state is not available", body.parameters.insideTemperature, body.parameters.outTemperature);}
 
 				// Check the operating state
-				if(json['parameters']['operate'] == 1) {
+				if(body.parameters.operate == 1) {
 					// Turn the Thermostat on or off
-					switch (json['parameters']['operationMode']) {
+					switch (body.parameters.operationMode) {
 						// Auto
 						case 0:
-							if (this.temperature < json['parameters']['temperatureSet']) {this.Thermostat.getCharacteristic(Characteristic.CurrentHeatingCoolingState).updateValue(Characteristic.CurrentHeatingCoolingState.HEAT);}
-							else if (this.temperature > json['parameters']['temperatureSet']) {this.Thermostat.getCharacteristic(Characteristic.CurrentHeatingCoolingState).updateValue(Characteristic.CurrentHeatingCoolingState.COOL);}
+							if (this.temperature < body.parameters.temperatureSet) {this.Thermostat.getCharacteristic(Characteristic.CurrentHeatingCoolingState).updateValue(Characteristic.CurrentHeatingCoolingState.HEAT);}
+							else if (this.temperature > body.parameters.temperatureSet) {this.Thermostat.getCharacteristic(Characteristic.CurrentHeatingCoolingState).updateValue(Characteristic.CurrentHeatingCoolingState.COOL);}
 							else {this.Thermostat.getCharacteristic(Characteristic.CurrentHeatingCoolingState).updateValue(Characteristic.CurrentHeatingCoolingState.OFF);}
 
 							this.Thermostat.getCharacteristic(Characteristic.TargetHeatingCoolingState).updateValue(Characteristic.TargetHeatingCoolingState.AUTO);
-							this.Fan.getCharacteristic(Characteristic.Active).updateValue(Characteristic.Active.INACTIVE);
+							this.Fan.getCharacteristic(Characteristic.Active).updateValue(Characteristic.Active.ACTIVE);
 							this.Dehumidifier.getCharacteristic(Characteristic.Active).updateValue(Characteristic.Active.INACTIVE);
 						break;
 
 						// Heat
 						case 3:
-							if (this.temperature < json['parameters']['temperatureSet']) {this.Thermostat.getCharacteristic(Characteristic.CurrentHeatingCoolingState).updateValue(Characteristic.CurrentHeatingCoolingState.HEAT);}
+							if (this.temperature < body.parameters.temperatureSet) {this.Thermostat.getCharacteristic(Characteristic.CurrentHeatingCoolingState).updateValue(Characteristic.CurrentHeatingCoolingState.HEAT);}
 							else {this.Thermostat.getCharacteristic(Characteristic.CurrentHeatingCoolingState).updateValue(Characteristic.CurrentHeatingCoolingState.OFF);}
 
 							this.Thermostat.getCharacteristic(Characteristic.TargetHeatingCoolingState).updateValue(Characteristic.TargetHeatingCoolingState.HEAT);
-							this.Fan.getCharacteristic(Characteristic.Active).updateValue(Characteristic.Active.INACTIVE);
+							this.Fan.getCharacteristic(Characteristic.Active).updateValue(Characteristic.Active.ACTIVE);
 							this.Dehumidifier.getCharacteristic(Characteristic.Active).updateValue(Characteristic.Active.INACTIVE);
 						break;
 
 						// Cool
 						case 2:
-							if (this.temperature > json['parameters']['temperatureSet']) {this.Thermostat.getCharacteristic(Characteristic.CurrentHeatingCoolingState).updateValue(Characteristic.CurrentHeatingCoolingState.COOL);}
+							if (this.temperature > body.parameters.temperatureSet) {this.Thermostat.getCharacteristic(Characteristic.CurrentHeatingCoolingState).updateValue(Characteristic.CurrentHeatingCoolingState.COOL);}
 							else {this.Thermostat.getCharacteristic(Characteristic.CurrentHeatingCoolingState).updateValue(Characteristic.CurrentHeatingCoolingState.OFF);}
 
 							this.Thermostat.getCharacteristic(Characteristic.TargetHeatingCoolingState).updateValue(Characteristic.TargetHeatingCoolingState.COOL);
-							this.Fan.getCharacteristic(Characteristic.Active).updateValue(Characteristic.Active.INACTIVE);
+							this.Fan.getCharacteristic(Characteristic.Active).updateValue(Characteristic.Active.ACTIVE);
 							this.Dehumidifier.getCharacteristic(Characteristic.Active).updateValue(Characteristic.Active.INACTIVE);
 						break;
 
-						// Dry
+						// Dry (Dehumidifier)
 						case 1:
-							this.Thermostat.getCharacteristic(Characteristic.CurrentHeatingCoolingState).updateValue(Characteristic.CurrentHeatingCoolingState.COOL);
-							this.Thermostat.getCharacteristic(Characteristic.TargetHeatingCoolingState).updateValue(Characteristic.TargetHeatingCoolingState.COOL);
-							this.Fan.getCharacteristic(Characteristic.Active).updateValue(Characteristic.Active.INACTIVE);
+							this.Thermostat.getCharacteristic(Characteristic.CurrentHeatingCoolingState).updateValue(Characteristic.CurrentHeatingCoolingState.OFF);
+							this.Thermostat.getCharacteristic(Characteristic.TargetHeatingCoolingState).updateValue(Characteristic.TargetHeatingCoolingState.OFF);
+							this.Fan.getCharacteristic(Characteristic.Active).updateValue(Characteristic.Active.ACTIVE);
 							this.Dehumidifier.getCharacteristic(Characteristic.Active).updateValue(Characteristic.Active.ACTIVE);
 						break;
 
@@ -299,7 +302,7 @@ PanasonicAC.prototype = {
 						break;
 
 						default:
-							this.log("Unknown TargetHeatingCoolingState state", json['parameters']['operationMode']);
+							this.log("Unknown TargetHeatingCoolingState state", body.parameters.operationMode);
 						break;
 					}
 				}
@@ -316,34 +319,34 @@ PanasonicAC.prototype = {
 				}
 
 				// Thermostat - Target Temperature
-				this.Thermostat.getCharacteristic(Characteristic.TargetTemperature).updateValue(json['parameters']['temperatureSet']);
+				this.Thermostat.getCharacteristic(Characteristic.TargetTemperature).updateValue(body.parameters.temperatureSet);
 
 				// Thermostat - Temperature Display Units
-				this.Thermostat.getCharacteristic(Characteristic.TemperatureDisplayUnits).updateValue(json['parameters']['temperatureUnit']);
+				//this.Thermostat.getCharacteristic(Characteristic.TemperatureDisplayUnits).updateValue(body.parameters.temperatureUnit);
 
 				// Fan - Target Fan State
-				if(json['parameters']['fanSpeed'] == 0) {
+				if(body.parameters.fanSpeed == 0) {
 					this.Fan.getCharacteristic(Characteristic.TargetFanState).updateValue(Characteristic.TargetFanState.AUTO);
 
 					// Set the Fan to an assumed maximum value
-					json['parameters']['fanSpeed'] = 5;
+					body.parameters.fanSpeed = 5;
 				}
 				else {this.Fan.getCharacteristic(Characteristic.TargetFanState).updateValue(Characteristic.TargetFanState.MANUAL);}
 
 				// Fan - Rotation Speed
-				this.Fan.getCharacteristic(Characteristic.RotationSpeed).updateValue(json['parameters']['fanSpeed']);
+				this.Fan.getCharacteristic(Characteristic.RotationSpeed).updateValue(body.parameters.fanSpeed);
 
 				// Fan - Swing Mode
-				if(json['parameters']['airSwingLR'] == 2 && json['parameters']['airSwingUD'] == 0) {this.Fan.getCharacteristic(Characteristic.SwingMode).updateValue(Characteristic.SwingMode.SWING_ENABLED);}
+				if(body.parameters.airSwingLR == 2 && body.parameters.airSwingUD == 0) {this.Fan.getCharacteristic(Characteristic.SwingMode).updateValue(Characteristic.SwingMode.SWING_ENABLED);}
 				else {this.Fan.getCharacteristic(Characteristic.SwingMode).updateValue(Characteristic.SwingMode.SWING_DISABLED);}
 
 				// Status Fault
-				if(json['parameters']['online'] && !json['parameters']['errorStatusFlg']) {
+				if(body.parameters.online && !body.parameters.errorStatusFlg) {
 					if(this.debug) {this.log("Refresh complete");}
 					this.Thermostat.getCharacteristic(Characteristic.StatusFault).updateValue(Characteristic.StatusFault.NO_FAULT);
 				}
 				else {
-					this.log("Refresh failed.", "Device may be offline or in error state", "Online", json['parameters']['online'], "Error Status Flag", json['parameters']['errorStatusFlg'], "HTTP response", response.statusCode, "Error #", body['code'], body['message']);
+					this.log("Refresh failed.", "Device may be offline or in error state", "Online", body.parameters.online, "Error Status Flag", body.parameters.errorStatusFlg, "HTTP response", response.statusCode, "Error #", body.code, body.message);
 					this.Thermostat.getCharacteristic(Characteristic.StatusFault).updateValue(Characteristic.StatusFault.GENERAL_FAULT);
 				}
 			}
@@ -356,7 +359,7 @@ PanasonicAC.prototype = {
 				this.Thermostat.getCharacteristic(Characteristic.StatusFault).updateValue(Characteristic.StatusFault.GENERAL_FAULT);
 			}
 			else {
-				try {this.log("Refresh failed.", "HTTP response", response.statusCode, "Error #", body['code'], body['message']);}
+				try {this.log("Refresh failed.", "HTTP response", response.statusCode, "Error #", body.code, body.message);}
 				catch(err) {this.log("Refresh failed.", "Unknown error.", "Did the API version change?", err);}
 
 				this.Thermostat.getCharacteristic(Characteristic.StatusFault).updateValue(Characteristic.StatusFault.GENERAL_FAULT);
@@ -377,6 +380,7 @@ PanasonicAC.prototype = {
 						parameters = {
 							"operate": 0
 						};
+						this.Fan.getCharacteristic(Characteristic.Active).updateValue(Characteristic.Active.INACTIVE);
 					break;
 
 					case Characteristic.TargetHeatingCoolingState.HEAT:
@@ -384,6 +388,7 @@ PanasonicAC.prototype = {
 							"operate": 1,
 							"operationMode": 3
 						};
+						this.Fan.getCharacteristic(Characteristic.Active).updateValue(Characteristic.Active.ACTIVE);
 					break;
 
 					case Characteristic.TargetHeatingCoolingState.COOL:
@@ -391,6 +396,7 @@ PanasonicAC.prototype = {
 							"operate": 1,
 							"operationMode": 2
 						};
+						this.Fan.getCharacteristic(Characteristic.Active).updateValue(Characteristic.Active.ACTIVE);
 					break;
 
 					case Characteristic.TargetHeatingCoolingState.AUTO:
@@ -398,12 +404,12 @@ PanasonicAC.prototype = {
 							"operate": 1,
 							"operationMode": 0
 						};
+						this.Fan.getCharacteristic(Characteristic.Active).updateValue(Characteristic.Active.ACTIVE);
 					break;
 
 					default: this.log("Unknown TargetHeatingCoolingState", value); break;
 				}
 
-				this.Fan.getCharacteristic(Characteristic.Active).updateValue(Characteristic.Active.INACTIVE);
 				this.Dehumidifier.getCharacteristic(Characteristic.Active).updateValue(Characteristic.Active.INACTIVE);
 			break;
 
@@ -422,13 +428,12 @@ PanasonicAC.prototype = {
 				switch (value) {
 					case Characteristic.Active.ACTIVE:
 						parameters = {
-							"operate": 1,
-							"operationMode": 4
+							"operate": 1
 						};
 
-						this.Thermostat.getCharacteristic(Characteristic.CurrentHeatingCoolingState).updateValue(Characteristic.CurrentHeatingCoolingState.OFF);
-						this.Thermostat.getCharacteristic(Characteristic.TargetHeatingCoolingState).updateValue(Characteristic.TargetHeatingCoolingState.OFF);
-						this.Dehumidifier.getCharacteristic(Characteristic.Active).updateValue(Characteristic.Active.INACTIVE);
+						//this.Thermostat.getCharacteristic(Characteristic.CurrentHeatingCoolingState).updateValue(Characteristic.CurrentHeatingCoolingState.OFF);
+						//this.Thermostat.getCharacteristic(Characteristic.TargetHeatingCoolingState).updateValue(Characteristic.TargetHeatingCoolingState.OFF);
+						//this.Dehumidifier.getCharacteristic(Characteristic.Active).updateValue(Characteristic.Active.INACTIVE);
 					break;
 
 					case Characteristic.Active.INACTIVE:
@@ -484,7 +489,6 @@ PanasonicAC.prototype = {
 				}
 			break;
 
-
 			// Dehumidifier - Active
 			case "DehumidifierActive":
 				switch (value) {
@@ -493,17 +497,19 @@ PanasonicAC.prototype = {
 							"operate": 1,
 							"operationMode": 1
 						};
-						this.Thermostat.getCharacteristic(Characteristic.CurrentHeatingCoolingState).updateValue(Characteristic.CurrentHeatingCoolingState.OFF);
-						this.Thermostat.getCharacteristic(Characteristic.TargetHeatingCoolingState).updateValue(Characteristic.TargetHeatingCoolingState.OFF);
-						this.Fan.getCharacteristic(Characteristic.Active).updateValue(Characteristic.Active.INACTIVE);
+						this.Fan.getCharacteristic(Characteristic.Active).updateValue(Characteristic.Active.ACTIVE);
 					break;
 
 					case Characteristic.Active.INACTIVE:
 						parameters = {
 							"operate": 0
 						};
+						this.Fan.getCharacteristic(Characteristic.Active).updateValue(Characteristic.Active.INACTIVE);
 					break;
 				}
+
+				this.Thermostat.getCharacteristic(Characteristic.CurrentHeatingCoolingState).updateValue(Characteristic.CurrentHeatingCoolingState.OFF);
+				this.Thermostat.getCharacteristic(Characteristic.TargetHeatingCoolingState).updateValue(Characteristic.TargetHeatingCoolingState.OFF);
 			break;
 
 		}
@@ -525,7 +531,7 @@ PanasonicAC.prototype = {
 		}, function(err, response, body) {
 			if (!err && response.statusCode == 200) {
 				if (body.result !== 0) {
-					this.log("SET failed.", "Error #", body['code'], body['message']);
+					this.log("SET failed.", "Error #", body.code, body.message);
 					this.Thermostat.getCharacteristic(Characteristic.StatusFault).updateValue(Characteristic.StatusFault.GENERAL_FAULT);
 
 					if(response.statusCode == 403) {this.log("Login error.", "Did you enter the correct username and password? Please check the details & restart Homebridge.", err);}
@@ -539,7 +545,7 @@ PanasonicAC.prototype = {
 				}
 			}
 			else {
-				try {this.log("SET failed.", "HTTP response", response.statusCode, "Error #", body['code'], body['message']);}
+				try {this.log("SET failed.", "HTTP response", response.statusCode, "Error #", body.code, body.message);}
 				catch(err) {this.log("SET failed.", "Unknown error.", "Did the API version change?", err);}
 
 				this.Thermostat.getCharacteristic(Characteristic.StatusFault).updateValue(Characteristic.StatusFault.GENERAL_FAULT);
