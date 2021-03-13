@@ -92,9 +92,11 @@ PanasonicAC.prototype = {
 			.on('set', this._setValue.bind(this, "FanActive"));
 
 		// Fan - Target Fan State
+		/*
 		this.Fan
 			.getCharacteristic(Characteristic.TargetFanState)
 			.on('set', this._setValue.bind(this, "TargetFanState"));
+		*/
 
 		// Fan - Rotation Speed
 		this.Fan
@@ -112,6 +114,7 @@ PanasonicAC.prototype = {
 			.on('set', this._setValue.bind(this, "SwingMode"));
 
 		// Dehumidifier service
+		/*
 		this.Dehumidifier = new Service.HumidifierDehumidifier(this.name);
 
 		// Dehumidifier - Active
@@ -135,6 +138,7 @@ PanasonicAC.prototype = {
 
 		this.Dehumidifier
 			.setCharacteristic(Characteristic.TargetHumidifierDehumidifierState, 2);
+		*/
 
 		// FakeGato History service
 		this.FakeGatoHistory = new FakeGatoHistoryService("weather", Accessory);
@@ -153,7 +157,7 @@ PanasonicAC.prototype = {
 			this.AccessoryInformation,
 			this.Thermostat,
 			this.Fan,
-			this.Dehumidifier,
+			//this.Dehumidifier,
 			this.FakeGatoHistory
 		];
 	},
@@ -262,7 +266,7 @@ PanasonicAC.prototype = {
 
 							this.Thermostat.getCharacteristic(Characteristic.TargetHeatingCoolingState).updateValue(Characteristic.TargetHeatingCoolingState.AUTO);
 							this.Fan.getCharacteristic(Characteristic.Active).updateValue(Characteristic.Active.ACTIVE);
-							this.Dehumidifier.getCharacteristic(Characteristic.Active).updateValue(Characteristic.Active.INACTIVE);
+							//this.Dehumidifier.getCharacteristic(Characteristic.Active).updateValue(Characteristic.Active.INACTIVE);
 						break;
 
 						// Heat
@@ -272,7 +276,7 @@ PanasonicAC.prototype = {
 
 							this.Thermostat.getCharacteristic(Characteristic.TargetHeatingCoolingState).updateValue(Characteristic.TargetHeatingCoolingState.HEAT);
 							this.Fan.getCharacteristic(Characteristic.Active).updateValue(Characteristic.Active.ACTIVE);
-							this.Dehumidifier.getCharacteristic(Characteristic.Active).updateValue(Characteristic.Active.INACTIVE);
+							//this.Dehumidifier.getCharacteristic(Characteristic.Active).updateValue(Characteristic.Active.INACTIVE);
 						break;
 
 						// Cool
@@ -282,7 +286,7 @@ PanasonicAC.prototype = {
 
 							this.Thermostat.getCharacteristic(Characteristic.TargetHeatingCoolingState).updateValue(Characteristic.TargetHeatingCoolingState.COOL);
 							this.Fan.getCharacteristic(Characteristic.Active).updateValue(Characteristic.Active.ACTIVE);
-							this.Dehumidifier.getCharacteristic(Characteristic.Active).updateValue(Characteristic.Active.INACTIVE);
+							//this.Dehumidifier.getCharacteristic(Characteristic.Active).updateValue(Characteristic.Active.INACTIVE);
 						break;
 
 						// Dry (Dehumidifier)
@@ -290,7 +294,7 @@ PanasonicAC.prototype = {
 							this.Thermostat.getCharacteristic(Characteristic.CurrentHeatingCoolingState).updateValue(Characteristic.CurrentHeatingCoolingState.OFF);
 							this.Thermostat.getCharacteristic(Characteristic.TargetHeatingCoolingState).updateValue(Characteristic.TargetHeatingCoolingState.OFF);
 							this.Fan.getCharacteristic(Characteristic.Active).updateValue(Characteristic.Active.ACTIVE);
-							this.Dehumidifier.getCharacteristic(Characteristic.Active).updateValue(Characteristic.Active.ACTIVE);
+							//this.Dehumidifier.getCharacteristic(Characteristic.Active).updateValue(Characteristic.Active.ACTIVE);
 						break;
 
 						// Fan
@@ -298,7 +302,7 @@ PanasonicAC.prototype = {
 							this.Thermostat.getCharacteristic(Characteristic.CurrentHeatingCoolingState).updateValue(Characteristic.CurrentHeatingCoolingState.OFF);
 							this.Thermostat.getCharacteristic(Characteristic.TargetHeatingCoolingState).updateValue(Characteristic.TargetHeatingCoolingState.OFF);
 							this.Fan.getCharacteristic(Characteristic.Active).updateValue(Characteristic.Active.ACTIVE);
-							this.Dehumidifier.getCharacteristic(Characteristic.Active).updateValue(Characteristic.Active.INACTIVE);
+							//this.Dehumidifier.getCharacteristic(Characteristic.Active).updateValue(Characteristic.Active.INACTIVE);
 						break;
 
 						default:
@@ -315,7 +319,7 @@ PanasonicAC.prototype = {
 					this.Fan.getCharacteristic(Characteristic.Active).updateValue(Characteristic.Active.INACTIVE);
 
 					// Turn the Dehumidifier off
-					this.Dehumidifier.getCharacteristic(Characteristic.Active).updateValue(Characteristic.Active.INACTIVE);
+					//this.Dehumidifier.getCharacteristic(Characteristic.Active).updateValue(Characteristic.Active.INACTIVE);
 				}
 
 				// Thermostat - Target Temperature
@@ -326,12 +330,12 @@ PanasonicAC.prototype = {
 
 				// Fan - Target Fan State
 				if(body.parameters.fanSpeed == 0) {
-					this.Fan.getCharacteristic(Characteristic.TargetFanState).updateValue(Characteristic.TargetFanState.AUTO);
+					//this.Fan.getCharacteristic(Characteristic.TargetFanState).updateValue(Characteristic.TargetFanState.AUTO);
 
 					// Set the Fan to an assumed maximum value
 					body.parameters.fanSpeed = 5;
 				}
-				else {this.Fan.getCharacteristic(Characteristic.TargetFanState).updateValue(Characteristic.TargetFanState.MANUAL);}
+				//else {this.Fan.getCharacteristic(Characteristic.TargetFanState).updateValue(Characteristic.TargetFanState.MANUAL);}
 
 				// Fan - Rotation Speed
 				this.Fan.getCharacteristic(Characteristic.RotationSpeed).updateValue(body.parameters.fanSpeed);
@@ -410,7 +414,7 @@ PanasonicAC.prototype = {
 					default: this.log("Unknown TargetHeatingCoolingState", value); break;
 				}
 
-				this.Dehumidifier.getCharacteristic(Characteristic.Active).updateValue(Characteristic.Active.INACTIVE);
+				//this.Dehumidifier.getCharacteristic(Characteristic.Active).updateValue(Characteristic.Active.INACTIVE);
 			break;
 
 			// Thermostat - Target Temperature
@@ -445,6 +449,7 @@ PanasonicAC.prototype = {
 			break;
 
 			// Fan - Target Fan State ("Fan Mode")
+			/*
 			case "TargetFanState":
 				switch (value) {
 					case Characteristic.TargetFanState.AUTO:
@@ -459,13 +464,14 @@ PanasonicAC.prototype = {
 					break;
 				}
 			break;
+			*/
 
 			// Fan - Rotation Speed
 			case "RotationSpeed":
 				parameters = {
 					"fanSpeed": value
 				};
-				this.Fan.getCharacteristic(Characteristic.TargetFanState).updateValue(Characteristic.TargetFanState.MANUAL);
+				//this.Fan.getCharacteristic(Characteristic.TargetFanState).updateValue(Characteristic.TargetFanState.MANUAL);
 			break;
 
 			// Fan - Swing Mode ("Oscillate")
@@ -490,6 +496,7 @@ PanasonicAC.prototype = {
 			break;
 
 			// Dehumidifier - Active
+			/*
 			case "DehumidifierActive":
 				switch (value) {
 					case Characteristic.Active.ACTIVE:
@@ -511,7 +518,7 @@ PanasonicAC.prototype = {
 				this.Thermostat.getCharacteristic(Characteristic.CurrentHeatingCoolingState).updateValue(Characteristic.CurrentHeatingCoolingState.OFF);
 				this.Thermostat.getCharacteristic(Characteristic.TargetHeatingCoolingState).updateValue(Characteristic.TargetHeatingCoolingState.OFF);
 			break;
-
+			*/
 		}
 
 		// Call the API
