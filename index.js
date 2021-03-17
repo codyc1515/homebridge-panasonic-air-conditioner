@@ -132,11 +132,13 @@ PanasonicAC.prototype = {
 	},
 
 	_login: function() {
+		if(this.debug) {this.log("Login start");}
+		
+		// Clear any pending timers
 		clearInterval(this._refreshInterval);
 		clearInterval(this._loginInterval);
 		clearTimeout(this._loginRetry);
-		if(this.debug) {this.log("Login start");}
-
+		
 		// Call the API
 		request.post({
 			url: "https://accsmart.panasonic.com/auth/login/",
