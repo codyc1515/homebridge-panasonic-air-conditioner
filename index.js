@@ -133,12 +133,12 @@ PanasonicAC.prototype = {
 
 	_login: function() {
 		if(this.debug) {this.log("Login start");}
-		
+
 		// Clear any pending timers
 		clearInterval(this._refreshInterval);
 		clearInterval(this._loginInterval);
 		clearTimeout(this._loginRetry);
-		
+
 		// Call the API
 		request.post({
 			url: "https://accsmart.panasonic.com/auth/login/",
@@ -183,8 +183,8 @@ PanasonicAC.prototype = {
 					else {this.log("Could not find any devices.", "Error #", body['code'], body['message']);}
 
 					// Set a timer to refresh the data
-					this._refreshInterval = setInterval(this._refresh, REFRESH_INTERVAL);
-          
+					this._refreshInterval = setInterval(this._refresh.bind(this), REFRESH_INTERVAL);
+
 					// Set a timer to refresh the login token
 					this._loginInterval = setInterval(this._login.bind(this), LOGIN_INTERVAL);
 				}.bind(this));
@@ -192,7 +192,7 @@ PanasonicAC.prototype = {
 			else {
 				try {this.log("Login failed.", "Error #", body.code, body.message);}
 				catch(err) {this.log("Login failed.", "Unknown error.", "Did the API version change?", err);}
-        
+
 				this._loginRetry = setTimeout(this._login.bind(this), LOGIN_RETRY_DELAY);
 			}
 		}.bind(this));
@@ -313,10 +313,10 @@ PanasonicAC.prototype = {
 			}
 			else if(response.statusCode == 403) {this.log("Refresh failed.", "Login error.", "Did you enter the correct username and password? Please check the details & restart Homebridge.", err);}
 			else if(response.statusCode == 401) {
-        this.log("Refresh failed.", "Token error.", "The token may have expired.", err);
-        
-        this._loginRetry = setTimeout(this._login.bind(this), LOGIN_RETRY_DELAY);
-      }
+				this.log("Refresh failed.", "Token error.", "The token may have expired.", err);
+
+				this._loginRetry = setTimeout(this._login.bind(this), LOGIN_RETRY_DELAY);
+			}
 			else {
 				try {this.log("Refresh failed.", "HTTP", response.statusCode, "Error #", body.code, body.message);}
 				catch(err) {this.log("Refresh failed.", "Unknown error.", "Did the API version change?", err);}
