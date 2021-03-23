@@ -78,8 +78,8 @@ PanasonicAC.prototype = {
 		this.HeaterCooler
 			.getCharacteristic(Characteristic.RotationSpeed)
 			.setProps({
-				minValue: 1,
-				maxValue: 5,
+				minValue: 0,
+				maxValue: 6,
 				minStep: 1
 			})
 			.on('set', this._setValue.bind(this, "RotationSpeed"));
@@ -301,7 +301,8 @@ PanasonicAC.prototype = {
 				this.HeaterCooler.getCharacteristic(Characteristic.TemperatureDisplayUnits).updateValue(body.parameters.temperatureUnit);
 
 				// Heater Cooler - Rotation Speed
-				this.HeaterCooler.getCharacteristic(Characteristic.RotationSpeed).updateValue(body.parameters.fanSpeed);
+				if(body.parameters.fanSpeed == 0) {this.HeaterCooler.getCharacteristic(Characteristic.RotationSpeed).updateValue(6);}
+				else {this.HeaterCooler.getCharacteristic(Characteristic.RotationSpeed).updateValue(body.parameters.fanSpeed);}
 
 				// Heater Cooler - Swing Mode
 				if(body.parameters.airSwingLR == 2 && body.parameters.airSwingUD == 0) {this.HeaterCooler.getCharacteristic(Characteristic.SwingMode).updateValue(Characteristic.SwingMode.SWING_ENABLED);}
@@ -387,6 +388,8 @@ PanasonicAC.prototype = {
 
 			// Heater Cooler - Rotation Speed
 			case "RotationSpeed":
+				if(value == 6) {value = 0;}
+
 				parameters = {
 					"fanSpeed": value
 				};
