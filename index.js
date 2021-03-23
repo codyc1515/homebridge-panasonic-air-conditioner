@@ -298,7 +298,7 @@ PanasonicAC.prototype = {
 				this.HeaterCooler.getCharacteristic(Characteristic.CoolingThresholdTemperature).updateValue(body.parameters.temperatureSet);
 
 				// Heater Cooler - Temperature Display Units
-				this.HeaterCooler.getCharacteristic(Characteristic.TemperatureDisplayUnits).updateValue(body.parameters.temperatureUnit);
+				this.HeaterCooler.getCharacteristic(Characteristic.TemperatureDisplayUnits).updateValue(body.temperatureUnit);
 
 				// Heater Cooler - Rotation Speed
 				if(body.parameters.fanSpeed == 0) {this.HeaterCooler.getCharacteristic(Characteristic.RotationSpeed).updateValue(6);}
