@@ -287,7 +287,7 @@ PanasonicAC.prototype = {
 				}
 				else {
 					// Turn the Heater Cooler off
-					this.HeaterCooler.getCharacteristic(Characteristic.Active).updateValue(Characteristic.ACTIVE.INACTIVE);
+					this.HeaterCooler.getCharacteristic(Characteristic.Active).updateValue(Characteristic.Active.INACTIVE);
 
 					this.HeaterCooler.getCharacteristic(Characteristic.CurrentHeaterCoolerState).updateValue(Characteristic.CurrentHeaterCoolerState.IDLE);
 					this.HeaterCooler.getCharacteristic(Characteristic.TargetHeaterCoolerState).updateValue(Characteristic.TargetHeaterCoolerState.OFF);
