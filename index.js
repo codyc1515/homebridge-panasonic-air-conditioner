@@ -309,8 +309,8 @@ PanasonicAC.prototype = {
 				else {this.HeaterCooler.getCharacteristic(Characteristic.SwingMode).updateValue(Characteristic.SwingMode.SWING_DISABLED);}
 
 				// Status Fault
-				if((body.parameters.online && !body.parameters.errorStatusFlg) && this.debug) {this.log("Refresh complete");}
-				else {this.log("Refresh failed.", "Device may be offline or in error state.", "Online", body.parameters.online, "Error Status Flag", body.parameters.errorStatusFlg, "HTTP", response.statusCode, "Error #", body.code, body.message);}
+				if(!body.parameters.online || body.parameters.errorStatusFlg) {this.log("Refresh failed.", "Device may be offline or in error state.", "OnlineStatus", body.parameters.online, "ErrorStatus", body.parameters.errorStatusFlg, "HTTPStatus", response.statusCode, "Error #", body.code, body.message);}
+				else if(this.debug) {this.log("Refresh complete");}
 			}
 			else if(response.statusCode == 403) {this.log("Refresh failed.", "Login error.", "Did you enter the correct username and password? Please check the details & restart Homebridge.", err);}
 			else if(response.statusCode == 401) {
