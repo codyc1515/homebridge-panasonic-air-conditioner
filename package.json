@@ -1,6 +1,5 @@
 {
   "_from": "homebridge-panasonic-air-conditioner@5.2.0",
-  "_id": "homebridge-panasonic-air-conditioner@5.2.0",
   "_inBundle": false,
   "_integrity": "sha512-ZuwtWqQffm3atyTpaWrtQ03X8d8tBDFQlZYOyyLFV7E/dHkCyXbHDAassNNB+Mdq3Tf3JQUNLRlCahRyHNNWLA==",
   "_location": "/homebridge-panasonic-air-conditioner",
@@ -58,5 +57,5 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "version": "6.1.1"
+  "version": "6.1.7"
 }
