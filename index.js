@@ -299,8 +299,10 @@ PanasonicAC.prototype = {
 				}
 
 				// Heater Cooler - Target Temperature
-				this.HeaterCooler.getCharacteristic(Characteristic.HeatingThresholdTemperature).updateValue(body.parameters.temperatureSet);
-				this.HeaterCooler.getCharacteristic(Characteristic.CoolingThresholdTemperature).updateValue(body.parameters.temperatureSet);
+				if(body.parameters.temperatureSet >= 16 && body.parameters.temperatureSet <= 30){
+					this.HeaterCooler.getCharacteristic(Characteristic.HeatingThresholdTemperature).updateValue(body.parameters.temperatureSet);
+					this.HeaterCooler.getCharacteristic(Characteristic.CoolingThresholdTemperature).updateValue(body.parameters.temperatureSet);
+				}
 
 				// Heater Cooler - Temperature Display Units
 				this.HeaterCooler.getCharacteristic(Characteristic.TemperatureDisplayUnits).updateValue(body.temperatureUnit);
