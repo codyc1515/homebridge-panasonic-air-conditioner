@@ -241,7 +241,7 @@ PanasonicAC.prototype = {
 					this.HeaterCooler.getCharacteristic(Characteristic.CurrentTemperature).updateValue(this.temperature);
 					this.FakeGatoHistory.addEntry({time: moment().unix(), temp: this.temperature});
 				}
-				else {this.log("Temperature state is not available", body.parameters.insideTemperature, body.parameters.outTemperature);}
+				else if(this.debug) {this.log("Temperature state is not available", body.parameters.insideTemperature, body.parameters.outTemperature);}
 
 				// Check the operating state
 				if(body.parameters.operate == 1) {
