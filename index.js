@@ -231,12 +231,12 @@ PanasonicAC.prototype = {
 				// Check the temperature
 				// Note - only update the temperature when the Heat Pump is reporting a valid temperature, otherwise it will just incorrectly report zero to HomeKit and FakeGato
 				if (
-					body.parameters.insideTemperature != 126 ||
-					body.parameters.outTemperature != 126
+					body.parameters.insideTemperature < 126 ||
+					body.parameters.outTemperature < 126
 				) {
 					// Temperature of 126 from the API = null
-					if (body.parameters.insideTemperature != 126) {this.temperature = body.parameters.insideTemperature;}
-					else if (body.parameters.outTemperature != 126) {this.temperature = body.parameters.outTemperature;}
+					if (body.parameters.insideTemperature < 126) {this.temperature = body.parameters.insideTemperature;}
+					else if (body.parameters.outTemperature < 126) {this.temperature = body.parameters.outTemperature;}
 
 					this.HeaterCooler.getCharacteristic(Characteristic.CurrentTemperature).updateValue(this.temperature);
 					this.FakeGatoHistory.addEntry({time: moment().unix(), temp: this.temperature});
@@ -278,13 +278,13 @@ PanasonicAC.prototype = {
 						// Dry (Dehumidifier)
 						case 1:
 							this.HeaterCooler.getCharacteristic(Characteristic.CurrentHeaterCoolerState).updateValue(Characteristic.CurrentHeaterCoolerState.IDLE);
-							this.HeaterCooler.getCharacteristic(Characteristic.TargetHeaterCoolerState).updateValue(Characteristic.TargetHeaterCoolerState.OFF);
+							this.HeaterCooler.getCharacteristic(Characteristic.TargetHeaterCoolerState).updateValue(Characteristic.TargetHeaterCoolerState.COOL);
 						break;
 
 						// Fan
 						case 4:
 							this.HeaterCooler.getCharacteristic(Characteristic.CurrentHeaterCoolerState).updateValue(Characteristic.CurrentHeaterCoolerState.IDLE);
-							this.HeaterCooler.getCharacteristic(Characteristic.TargetHeaterCoolerState).updateValue(Characteristic.TargetHeaterCoolerState.OFF);
+							this.HeaterCooler.getCharacteristic(Characteristic.TargetHeaterCoolerState).updateValue(Characteristic.TargetHeaterCoolerState.COOL);
 						break;
 
 						default:
@@ -295,9 +295,7 @@ PanasonicAC.prototype = {
 				else {
 					// Turn the Heater Cooler off
 					this.HeaterCooler.getCharacteristic(Characteristic.Active).updateValue(Characteristic.Active.INACTIVE);
-
 					this.HeaterCooler.getCharacteristic(Characteristic.CurrentHeaterCoolerState).updateValue(Characteristic.CurrentHeaterCoolerState.IDLE);
-					this.HeaterCooler.getCharacteristic(Characteristic.TargetHeaterCoolerState).updateValue(Characteristic.TargetHeaterCoolerState.OFF);
 				}
 
 				// Heater Cooler - Target Temperature
