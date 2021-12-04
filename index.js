@@ -10,6 +10,8 @@ var Accessory,
 const REFRESH_INTERVAL = 60000;
 const LOGIN_INTERVAL = 10800000;
 const LOGIN_RETRY_DELAY = 360000;
+const USER_AGENT = "G-RAC";
+const APP_VERSION = "1.13.0";
 
 module.exports = function(homebridge) {
 	Service = homebridge.hap.Service;
@@ -32,7 +34,6 @@ function PanasonicAC(log, config) {
 	this.groupNumber = config.groupnumber || 1;
 
 	this.uToken = null;
-	this.version = "1.10.0";
 	this.temperature = 0.0;
 
 	// Login for the first time and refresh
@@ -145,8 +146,9 @@ PanasonicAC.prototype = {
 			headers: {
 				"Accept": "application/json; charset=UTF-8",
 				"Content-Type": "application/json",
+				"User-Agent": USER_AGENT,
 				"X-APP-TYPE": 0,
-				"X-APP-VERSION": this.version
+				"X-APP-VERSION": APP_VERSION
 			},
 			json: {
 				"loginId": this.email,
@@ -161,8 +163,9 @@ PanasonicAC.prototype = {
 					headers: {
 						"Accept": "application/json; charset=UTF-8",
 						"Content-Type": "application/json",
+						"User-Agent": USER_AGENT,
 						"X-APP-TYPE": 0,
-						"X-APP-VERSION": this.version,
+						"X-APP-VERSION": APP_VERSION,
 						"X-User-Authorization": this.uToken
 					},
 					json: ""
@@ -178,9 +181,12 @@ PanasonicAC.prototype = {
 							// Send a refresh off
 							this._refresh();
 						}
-						catch(err) {this.log("Could not find device by number.", "Check your device number and try again.", err, "Error #", body.code, body.message);}
+						catch(err) {this.log("Could not find device by number. Check you have specified the correct device number in config, then restart Homebridge.", err, "Error #", body.code, body.message);}
 					}
-					else {this.log("Could not find any devices.", "Error #", body['code'], body['message']);}
+					else {
+						try {this.log("Could not find any devices. Check you have added one in the Comfort Cloud app.", body['code'], body['message']);}
+						catch(err) {this.log("Could not find any devices. Check you have added one in the Comfort Cloud app.", err);}
+					}
 
 					// Set a timer to refresh the data
 					this._refreshInterval = setInterval(this._refresh.bind(this), REFRESH_INTERVAL);
@@ -190,8 +196,8 @@ PanasonicAC.prototype = {
 				}.bind(this));
 			}
 			else {
-				try {this.log("Login failed.", "Error #", body.code, body.message);}
-				catch(err) {this.log("Login failed.", "Unknown error.", "Did the API version change?", err);}
+				try {this.log("Failed to login. Check the configured email and password, then restart Homebridge.", body.code, body.message);}
+				catch(err) {this.log("Unknown error. An update to the plug-in may be required. Check for the latest version.", err);}
 
 				this._loginRetry = setTimeout(this._login.bind(this), LOGIN_RETRY_DELAY);
 			}
@@ -211,8 +217,9 @@ PanasonicAC.prototype = {
 			headers: {
 				"Accept": "application/json; charset=UTF-8",
 				"Content-Type": "application/json",
+				"User-Agent": USER_AGENT,
 				"X-APP-TYPE": 0,
-				"X-APP-VERSION": this.version,
+				"X-APP-VERSION": APP_VERSION,
 				"X-User-Authorization": this.uToken
 			}
 		}, function(err, response, body) {
@@ -309,18 +316,24 @@ PanasonicAC.prototype = {
 				else {this.HeaterCooler.getCharacteristic(Characteristic.SwingMode).updateValue(Characteristic.SwingMode.SWING_DISABLED);}
 
 				// Status Fault
-				if(!body.parameters.online || body.parameters.errorStatusFlg) {this.log("Refresh failed.", "Device may be offline or in error state.", "OnlineStatus", body.parameters.online, "ErrorStatus", body.parameters.errorStatusFlg, "HTTPStatus", response.statusCode, "Error #", body.code, body.message);}
-				else if(this.debug) {this.log("Refresh complete");}
-			}
-			else if(response.statusCode == 403) {this.log("Refresh failed.", "Login error.", "Did you enter the correct username and password? Please check the details & restart Homebridge.", err);}
-			else if(response.statusCode == 401) {
-				this.log("Refresh failed.", "Token error.", "The token may have expired.", err);
-
-				this._loginRetry = setTimeout(this._login.bind(this), LOGIN_RETRY_DELAY);
+				if(body.parameters.errorStatusFlg) {this.log("Error - Device is in error state. Check the Comfort Cloud app for errors. ", body.parameters.errorStatusFlg, body.code, body.message);}
+				else if(this.debug) {this.log("Refreshed succesfully");}
 			}
 			else {
-				try {this.log("Refresh failed.", "HTTP", response.statusCode, "Error #", body.code, body.message);}
-				catch(err) {this.log("Refresh failed.", "Unknown error.", "Did the API version change?", err);}
+				try {
+					if(response.statusCode == 500 || response.statusCode == 503) {
+						if(body.code == 5005) {this.log("Warning - Device has lost connectivity to Comfort Cloud. Check your Wi-Fi connectivity or restart the Heat Pump.", body.code, body.message);}
+						else {this.log("Error - 500 Internal Server Error. Comfort Cloud server is experiencing issues.", err);}
+					}
+					else if(response.statusCode == 403) {this.log("Error - 403 Forbidden. Check the configured email and password, then restart Homebridge.", err);}
+					else if(response.statusCode == 401) {
+						this.log("Warning - 401 Unauthorized. Login token has expired.", err);
+
+						this._loginRetry = setTimeout(this._login.bind(this), LOGIN_RETRY_DELAY);
+					}
+					else {this.log("Unknown error. An update to the plug-in may be required. Check for the latest version.", "HTTP", response.statusCode, "Error #", body.code, body.message);}
+				}
+				catch(err) {this.log("Unknown error. An update to the plug-in may be required. Check for the latest version.", err);}
 			}
 		}.bind(this));
 	},
@@ -423,8 +436,9 @@ PanasonicAC.prototype = {
 			headers: {
 				"Accept": "application/json; charset=UTF-8",
 				"Content-Type": "application/json",
+				"User-Agent": USER_AGENT,
 				"X-APP-TYPE": 0,
-				"X-APP-VERSION": this.version,
+				"X-APP-VERSION": APP_VERSION,
 				"X-User-Authorization": this.uToken
 			},
 			json: {
@@ -434,16 +448,20 @@ PanasonicAC.prototype = {
 		}, function(err, response, body) {
 			if (!err && response.statusCode == 200) {
 				if (body.result !== 0) {
-					this.log("SET failed.", "Error #", body.code, body.message);
-
-					if(response.statusCode == 403) {this.log("Login error.", "Did you enter the correct username and password? Please check the details & restart Homebridge.", err);}
-					else if(response.statusCode == 401) {this.log("Token error.", "The token may have expired.", err);}
 				}
-				else if(this.debug) {this.log("SET", CharacteristicName, value, "complete");}
+				else if(this.debug) {this.log("Set", CharacteristicName, value, "successfully");}
 			}
 			else {
-				try {this.log("SET failed.", "HTTP", response.statusCode, "Error #", body.code, body.message);}
-				catch(err) {this.log("SET failed.", "Unknown error.", "Did the API version change?", err);}
+				try {
+					if(response.statusCode == 500 || response.statusCode == 503) {
+						if(body.code == 5005) {this.log("Warning - Device has lost connectivity to Comfort Cloud. Check your Wi-Fi connectivity or restart the Heat Pump.", body.code, body.message);}
+						else {this.log("Error - 500 Internal Server Error. Comfort Cloud server is experiencing issues.", err);}
+					}
+					else if(response.statusCode == 403) {this.log("Error - 403 Forbidden. Check the configured email and password, then restart Homebridge.", body.code, body.message, err);}
+					else if(response.statusCode == 401) {this.log("Warning - 401 Unauthorized. Login token has expired.", body.code, body.message, err);}
+					else {this.log("Unknown error. An update to the plug-in may be required. Check for the latest version.", response.statusCode, body.code, body.message);}
+				}
+				catch(err) {this.log("Unknown error. An update to the plug-in may be required. Check for the latest version.", err);}
 			}
 		}.bind(this));
 
