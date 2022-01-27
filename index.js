@@ -11,7 +11,7 @@ const REFRESH_INTERVAL = 60000;
 const LOGIN_INTERVAL = 10800000;
 const LOGIN_RETRY_DELAY = 360000;
 const USER_AGENT = "G-RAC";
-const APP_VERSION = "1.13.0";
+const APP_VERSION = "1.14.0";
 
 module.exports = function(homebridge) {
 	Service = homebridge.hap.Service;
