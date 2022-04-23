@@ -1,3 +1,6 @@
+# Update
+This plug-in is now archived and it is advised to use the [homebridge-panasonic-ac-platform](https://github.com/embee8/homebridge-panasonic-ac-platform) plug-in instead. It is based on this plug-in. This plug-in provides support for the devices as a platform (instead of just individual accessories).
+
 # homebridge-panasonic-air-conditioner
 Panasonic Air Conditioner / Heat Pump plugin for [HomeBridge](https://github.com/nfarina/homebridge) using the Panasonic *Comfort Cloud* API to expose Panasonic Air Conditioners to Apples HomeKit.
 
